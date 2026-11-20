@@ -86,7 +86,7 @@ function buildNav(): void {
         {
           class: "tab",
           dataset: { tab: tab.id },
-          attrs: { type: "button", role: "tab" },
+          attrs: { type: "button", role: "tab", "aria-label": t(tab.label) },
           on: {
             click: () => {
               if (tab.id !== current) haptic.select();
@@ -94,7 +94,7 @@ function buildNav(): void {
             },
           },
         },
-        icon(tab.icon, 22),
+        icon(tab.icon, 20),
         h("span", { class: "tab-label", text: t(tab.label) }),
         tab.id === "solve" && !state.isPro ? h("span", { class: "tab-pro", text: t("pro_badge") }) : null,
       ),
@@ -112,7 +112,7 @@ function paintBanner(): void {
   } else if (state.mode === "demo") {
     bannerEl.hidden = false;
     bannerEl.dataset.kind = "info";
-    bannerEl.append(h("strong", { text: t("open_in_telegram") }), h("span", { text: " — " + t("open_in_telegram_hint") }));
+    bannerEl.append(h("strong", { text: t("open_in_telegram") }), h("span", { class: "banner-hint", text: " — " + t("open_in_telegram_hint") }));
   } else {
     bannerEl.hidden = true;
   }

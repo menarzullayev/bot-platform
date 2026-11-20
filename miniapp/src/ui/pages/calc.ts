@@ -23,6 +23,8 @@ export function createCalcPage(): Page {
   let resultEl!: HTMLElement;
   let prevEl!: HTMLElement;
   let angleBtn!: HTMLButtonElement;
+  // short screens show either the scientific grid or the digit pad (CSS reads data-sci); tall ones show both
+  let sciOn = false;
 
   const editState = (): EditState => ({ text: input.value, start: input.selectionStart ?? input.value.length, end: input.selectionEnd ?? input.value.length });
 
@@ -37,6 +39,8 @@ export function createCalcPage(): Page {
   function showResult(text: string, kind: "preview" | "final" | "error"): void {
     resultEl.textContent = text;
     resultEl.dataset.kind = kind;
+    // long results shrink instead of scrolling sideways
+    resultEl.dataset.len = text.length > 15 ? "xl" : text.length > 11 ? "l" : "m";
     lastResultKind = kind;
     lastResult = kind === "error" ? "" : text;
     if (kind === "error") lastErrorText = text;
@@ -93,9 +97,9 @@ export function createCalcPage(): Page {
     setEdit(applyKey(s, key));
   }
 
-  function keyButton(k: KeyDef): HTMLButtonElement {
+  function keyButton(k: KeyDef, extraClass = ""): HTMLButtonElement {
     return h("button", {
-      class: `key k-${k.kind} k-${k.id}`,
+      class: `key k-${k.kind} k-${k.id}${extraClass ? " " + extraClass : ""}`,
       attrs: { type: "button", "aria-label": k.label },
       text: k.label,
       on: {
@@ -243,10 +247,38 @@ export function createCalcPage(): Page {
         },
       },
     });
-    const sci = h("div", { class: "sci", attrs: { role: "group", "aria-label": t("calc_sci") } }, SCI_KEYS.map((k) => keyButton(k)));
+    const sciToggle = h(
+      "button",
+      {
+        class: "chip sci-toggle",
+        attrs: { type: "button", "aria-label": t("calc_sci"), "aria-pressed": String(sciOn) },
+        text: "ƒ(x)",
+        on: {
+          mousedown: (e) => e.preventDefault(),
+          click: () => setSci(!sciOn),
+        },
+      },
+    );
+    const backKey = h("button", {
+      class: "key k-ctl sci-back",
+      attrs: { type: "button", "aria-label": "123" },
+      text: "123",
+      on: { mousedown: (e) => e.preventDefault(), click: () => setSci(false) },
+    });
+    const extra = MAIN_PAD.filter((k) => k.id === "ac" || k.id === "bs" || k.id === "eq").map((k) => keyButton(k, "sci-extra"));
+    const sci = h("div", { class: "sci", attrs: { role: "group", "aria-label": t("calc_sci") } }, SCI_KEYS.map((k) => keyButton(k)), backKey, extra);
     const pad = h("div", { class: "keypad", attrs: { role: "group" } }, MAIN_PAD.map((k) => keyButton(k)));
+    function setSci(on: boolean): void {
+      sciOn = on;
+      el.dataset.sci = on ? "on" : "off";
+      sciToggle.setAttribute("aria-pressed", String(on));
+      sciToggle.classList.toggle("on", on);
+      haptic.select();
+    }
+    el.dataset.sci = sciOn ? "on" : "off";
+    sciToggle.classList.toggle("on", sciOn);
     el.append(
-      h("div", { class: "calc-bar" }, hist, h("div", { class: "grow" }), angleBtn, kbd),
+      h("div", { class: "calc-bar" }, hist, h("div", { class: "grow" }), sciToggle, angleBtn, kbd),
       h("div", { class: "display" }, prevEl, input, resultEl),
       sci,
       pad,

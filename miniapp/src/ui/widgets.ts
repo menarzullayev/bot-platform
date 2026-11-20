@@ -97,6 +97,52 @@ export function segmented<T extends string>(
   return wrap;
 }
 
+// ---- chooser: wrapping chip grid on roomy screens, one compact native select on short ones (CSS decides which) ----
+export function chooser<T extends string>(
+  options: ReadonlyArray<readonly [T, string]>,
+  value: T,
+  onPick: (v: T) => void,
+  label: string,
+  opts: { roomy?: boolean; langs?: ReadonlyArray<string> } = {},
+): HTMLElement {
+  const grid = h("div", { class: "choose-grid", attrs: { role: "radiogroup", "aria-label": label } });
+  const select = h("select", { class: "choose-select", attrs: { "aria-label": label } });
+  const chips = new Map<T, HTMLButtonElement>();
+  const paint = (v: T): void => {
+    for (const [k, b] of chips) {
+      b.setAttribute("aria-checked", String(k === v));
+      b.classList.toggle("on", k === v);
+    }
+    select.value = v;
+  };
+  options.forEach(([v, text], i) => {
+    const lang = opts.langs?.[i];
+    const b = h("button", {
+      class: "chip",
+      attrs: { type: "button", role: "radio", lang },
+      text,
+      on: {
+        click: () => {
+          haptic.select();
+          paint(v);
+          onPick(v);
+        },
+      },
+    });
+    chips.set(v, b);
+    grid.appendChild(b);
+    select.appendChild(h("option", { attrs: { value: v, lang }, text }));
+  });
+  select.addEventListener("change", () => {
+    haptic.select();
+    const v = select.value as T;
+    paint(v);
+    onPick(v);
+  });
+  paint(value);
+  return h("div", { class: "choose" + (opts.roomy ? " lo" : "") }, grid, h("div", { class: "choose-sel" }, select));
+}
+
 // ---- searchable picker (units / currencies) ----
 export function openPicker(opts: {
   title: string;

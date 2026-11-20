@@ -8,7 +8,7 @@ import { clear, h, icon } from "../dom";
 import { ensureRates } from "../session";
 import { lsGet, lsSet, prefs, state, t } from "../state";
 import { haptic } from "../tg";
-import { openPicker, toast } from "../widgets";
+import { chooser, openPicker, toast } from "../widgets";
 import type { Page } from "./types";
 
 interface Saved {
@@ -102,25 +102,16 @@ export function createConvertPage(): Page {
 
   function render(): void {
     clear(el);
-    const chips = h(
-      "div",
-      { class: "cat-strip", attrs: { role: "tablist" } },
-      categories().map((c) =>
-        h("button", {
-          class: "chip" + (c === cat ? " on" : ""),
-          attrs: { type: "button", role: "tab", "aria-selected": c === cat },
-          text: t(`cat_${c}` as "cat_length"),
-          on: {
-            click: () => {
-              haptic.select();
-              cat = c;
-              [from, to] = defaultPair(c);
-              if (c === "currency") void ensureRates().then(() => { normalizePair(); compute(); });
-              render();
-            },
-          },
-        }),
-      ),
+    const chips = chooser(
+      categories().map((c) => [c, t(`cat_${c}` as "cat_length")] as const),
+      cat,
+      (c) => {
+        cat = c;
+        [from, to] = defaultPair(c);
+        if (c === "currency") void ensureRates().then(() => { normalizePair(); compute(); });
+        render();
+      },
+      t("nav_convert"),
     );
     inputEl = h("input", {
       class: "field big ltr",
@@ -164,7 +155,7 @@ export function createConvertPage(): Page {
     noteEl = h("div", { class: "hint note" });
     el.append(
       chips,
-      h("div", { class: "card" }, h("label", { class: "lbl", text: t("conv_value") }), inputEl),
+      h("label", { class: "card conv-in" }, h("span", { class: "lbl", text: t("conv_value") }), inputEl),
       h("div", { class: "pair" }, h("div", { class: "pair-col" }, h("div", { class: "lbl", text: t("conv_from") }), fromBtn), swap, h("div", { class: "pair-col" }, h("div", { class: "lbl", text: t("conv_to") }), toBtn)),
       h("div", { class: "card out" }, outEl, rateEl, noteEl),
     );

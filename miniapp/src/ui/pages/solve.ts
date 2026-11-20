@@ -17,7 +17,7 @@ import { clear, h } from "../dom";
 import { refreshMe } from "../session";
 import { lsGet, lsSet, state, t } from "../state";
 import { haptic } from "../tg";
-import { proLock, segmented } from "../widgets";
+import { chooser, proLock } from "../widgets";
 import type { Page } from "./types";
 
 type Mode = "derivative" | "integral" | "equation" | "system" | "arith";
@@ -173,30 +173,36 @@ export function createSolvePage(): Page {
   function render(): void {
     clear(el);
     const modeOptions = MODES.map((m) => [m, t(`solve_${m}` as "solve_derivative")] as const);
-    const tabs = segmented(modeOptions, mode, (m) => {
-      mode = m;
-      lsSet("solve-mode", m);
-      render();
-    });
-    tabs.classList.add("scroll");
+    const tabs = chooser(
+      modeOptions,
+      mode,
+      (m) => {
+        mode = m;
+        lsSet("solve-mode", m);
+        render();
+      },
+      t("nav_solve"),
+    );
     el.appendChild(tabs);
     if (!state.isPro) {
       el.appendChild(teaser());
       return;
     }
-    const form = h("div", { class: "card form" });
-    if (mode === "derivative" || mode === "integral" || mode === "arith") {
-      form.appendChild(field("expr", t("solve_expr_ph")));
-    }
-    if (mode === "equation") form.appendChild(field("eq", t("solve_eq_ph")));
-    if (mode === "system") form.append(field("eq1", t("solve_eq1")), field("eq2", t("solve_eq2")));
+    const form = h("div", { class: "card form solve-form" });
+    const go = h("button", { class: "btn primary", attrs: { type: "button" }, text: t("solve_go"), on: { click: run } });
+    if (mode === "derivative" || mode === "arith") form.appendChild(h("div", { class: "inline-go" }, field("expr", t("solve_expr_ph")), go));
+    if (mode === "equation") form.appendChild(h("div", { class: "inline-go" }, field("eq", t("solve_eq_ph")), go));
+    if (mode === "system") form.append(field("eq1", t("solve_eq1")), h("div", { class: "inline-go" }, field("eq2", t("solve_eq2")), go));
     if (mode === "integral") {
       const def = h("input", { attrs: { type: "checkbox", id: "def-int" }, on: { change: () => { vals.definite = def.checked ? "1" : ""; render(); } } });
       def.checked = vals.definite === "1";
-      form.appendChild(h("label", { class: "check" }, def, h("span", { text: t("solve_definite") })));
-      if (vals.definite === "1") form.appendChild(h("div", { class: "grid2" }, field("a", t("solve_lower"), "decimal"), field("b", t("solve_upper"), "decimal")));
+      const defRow = h("label", { class: "check" }, def, h("span", { text: t("solve_definite") }));
+      if (vals.definite === "1") {
+        form.append(field("expr", t("solve_expr_ph")), h("div", { class: "grid2" }, field("a", t("solve_lower"), "decimal"), field("b", t("solve_upper"), "decimal")), h("div", { class: "inline-go" }, defRow, go));
+      } else {
+        form.append(h("div", { class: "inline-go" }, field("expr", t("solve_expr_ph")), go), defRow);
+      }
     }
-    form.appendChild(h("button", { class: "btn primary wide", attrs: { type: "button" }, text: t("solve_go"), on: { click: run } }));
     out = h("div", { class: "solve-out", attrs: { "aria-live": "polite" } });
     el.append(form, out);
   }
