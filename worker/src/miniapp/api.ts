@@ -1,3 +1,4 @@
+import { globalFetch } from "../http";
 // Mini App server API: /api/app/:botId/{me,fx,settings,history,invoice}.
 // Auth: `Authorization: tma <initData>` verified against the bot's token (see auth.ts). Same origin, so no CORS.
 // The bot token (decrypted from D1) lives only inside authenticate()/createInvoice() and is never logged or returned.
@@ -337,7 +338,7 @@ async function route(req: Request, env: Env, deps: PlatformDeps): Promise<Respon
       const lang = s.lang ?? detectLang(auth.user.language_code, config.defaultLang);
       const stars = botProConfig(auth.bot).proStars;
       const link = await createInvoice({
-        fetchFn: deps.fetchFn ?? fetch,
+        fetchFn: deps.fetchFn ?? globalFetch,
         token: auth.token,
         bot: auth.bot,
         userId: auth.user.id,

@@ -1,3 +1,4 @@
+import { globalFetch } from "./http";
 import { decryptToken, encryptToken, randomSecret, timingSafeEqual } from "./crypto";
 import { countUsersPerBot, getBot, insertBot, listBots, setBotEnabled, setBotTemplate, type BotRow, type Db } from "./db";
 import type { Env } from "./env";
@@ -68,7 +69,7 @@ export async function handleAdmin(req: Request, env: Env, deps: PlatformDeps = {
     return json({ error: "unauthorized" }, 401);
   }
   const db: Db = deps.db ?? (env.DB as unknown as Db);
-  const fetchFn = deps.fetchFn ?? fetch;
+  const fetchFn = deps.fetchFn ?? globalFetch;
   const url = new URL(req.url);
 
   if (req.method === "GET" && url.pathname === "/admin/bots") {

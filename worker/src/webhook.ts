@@ -1,3 +1,4 @@
+import { globalFetch } from "./http";
 import { Bot, webhookCallback } from "grammy";
 import { decryptToken, timingSafeEqual } from "./crypto";
 import { getBot, type Db } from "./db";
@@ -87,7 +88,7 @@ export async function handleWebhook(
       config,
       appConfig: resolveAppConfig(env, deps),
       now: deps.now ?? (() => Math.floor(Date.now() / 1000)),
-      fetchFn: deps.fetchFn ?? fetch,
+      fetchFn: deps.fetchFn ?? globalFetch,
       rateLimited: (uid) => state.limiter.limited(`${botId}:${uid}`, (deps.nowMs ?? Date.now)()),
     });
 

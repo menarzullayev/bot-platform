@@ -1,3 +1,4 @@
+import { globalFetch } from "./http";
 import { handleAdmin } from "./admin";
 import { timingSafeEqual } from "./crypto";
 import { listEnabledBotConfigs, type Db } from "./db";
@@ -27,7 +28,7 @@ export async function runScheduled(env: Env, deps: PlatformDeps = {}): Promise<{
         db,
         appConfig,
         now: deps.now ?? (() => Math.floor(Date.now() / 1000)),
-        fetchFn: deps.fetchFn ?? fetch,
+        fetchFn: deps.fetchFn ?? globalFetch,
       });
       ran++;
     } catch (e) {
