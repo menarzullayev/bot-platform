@@ -76,6 +76,7 @@ const PATHS: Record<string, string> = {
   reset: "M4 12a8 8 0 1 0 2.5-5.8M4 4v5h5",
   star: "M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z",
   chevron: "M9 6l6 6-6 6",
+  share: "M12 15V4M8 8l4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6",
   search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16l-4-4",
 };
 

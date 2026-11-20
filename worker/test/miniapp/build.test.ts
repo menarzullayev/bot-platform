@@ -61,8 +61,9 @@ describe("Mini App production bundle", () => {
       // (`eval` as a method name of the evaluator class is fine; only global/indirect eval and Function() matter to CSP)
       expect(code, f).not.toMatch(/(?:window|globalThis|self)\.eval\b|\(0,\s*eval\)/);
       expect(code, f).not.toMatch(/\bnew Function\s*\(|[=(,;!&|?:]\s*Function\s*\(/);
+      // t.me: the share fallback https://t.me/share/url (lib/share.ts); no other host may appear
       const hosts = new Set([...code.matchAll(/https?:\/\/([a-z0-9.-]+)/gi)].map((m) => m[1].toLowerCase()));
-      for (const h of hosts) expect(["www.w3.org"], `${f} references ${h}`).toContain(h);
+      for (const h of hosts) expect(["www.w3.org", "t.me"], `${f} references ${h}`).toContain(h);
     }
     expect(read(result.entryCss)).not.toMatch(/https?:\/\//);
   });

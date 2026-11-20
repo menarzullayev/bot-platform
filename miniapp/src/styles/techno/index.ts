@@ -5,7 +5,8 @@ import { STYLE_META } from "../meta";
 import type { StylePack } from "../../contract/types";
 import { technoKit } from "./kit";
 import cssHref from "./pack.css?url";
+import { drawTechnoShareCard } from "./share";
 import { technoTokens } from "./tokens";
 
-const pack: StylePack = { meta: STYLE_META.techno, kit: technoKit, cssHref, tokens: technoTokens };
+const pack: StylePack = { meta: STYLE_META.techno, kit: technoKit, cssHref, tokens: technoTokens, drawShareCard: drawTechnoShareCard };
 export default pack;

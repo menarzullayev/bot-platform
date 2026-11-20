@@ -226,6 +226,51 @@ const ROWS = {
   set_save_failed: ["Saqlab boʻlmadi", "Не удалось сохранить", "Could not save", "Kaydedilemedi", "تعذّر الحفظ", "No se pudo guardar"],
   set_demo_note: ["Demo rejimda sozlamalar faqat shu qurilmada", "В демо-режиме настройки только на этом устройстве", "In demo mode settings stay on this device", "Demo modunda ayarlar yalnızca bu cihazda", "في الوضع التجريبي تبقى الإعدادات على هذا الجهاز", "En modo demo los ajustes quedan en este dispositivo"],
 
+  // ---- sharing a result as a picture card (DEC-011) ----
+  share: ["Ulashish", "Поделиться", "Share", "Paylaş", "مشاركة", "Compartir"],
+  share_sent: ["Yuborildi", "Отправлено", "Sent", "Gönderildi", "تم الإرسال", "Enviado"],
+  share_light_title: ["Yengil rejim", "Лёгкий режим", "Light mode", "Hafif mod", "الوضع الخفيف", "Modo ligero"],
+  share_light_text: [
+    "Bugun koʻp foydalanuvchi bor, shuning uchun rasm ulashish vaqtincha oʻchiq. Hisoblash ishlayveradi.",
+    "Сегодня много пользователей, поэтому отправка картинок временно отключена. Вычисления работают.",
+    "Many people are using the bot today, so sharing pictures is paused for now. Calculations keep working.",
+    "Bugün çok kullanıcı var, bu yüzden resim paylaşımı geçici olarak kapalı. Hesaplama çalışmaya devam ediyor.",
+    "هناك ازدحام اليوم، لذلك توقفت مشاركة الصور مؤقتًا. تستمر الحسابات بالعمل.",
+    "Hoy hay mucho uso, así que compartir imágenes está en pausa. Los cálculos siguen funcionando.",
+  ],
+  share_err_light: [
+    "Yengil rejim: rasm ulashish vaqtincha oʻchiq",
+    "Лёгкий режим: отправка картинок временно отключена",
+    "Light mode: sharing pictures is paused",
+    "Hafif mod: resim paylaşımı geçici olarak kapalı",
+    "الوضع الخفيف: مشاركة الصور متوقفة مؤقتًا",
+    "Modo ligero: compartir imágenes está en pausa",
+  ],
+  share_err_rate: [
+    "Juda tez-tez. Birozdan keyin urinib koʻring",
+    "Слишком часто. Попробуйте чуть позже",
+    "Too often. Try again in a little while",
+    "Çok sık. Biraz sonra tekrar deneyin",
+    "مرات كثيرة جدًا. حاول بعد قليل",
+    "Demasiado seguido. Inténtalo en un rato",
+  ],
+  share_err_server: [
+    "Server hozir band. Keyinroq urinib koʻring",
+    "Сервер сейчас занят. Попробуйте позже",
+    "The server is busy. Try again later",
+    "Sunucu şu an meşgul. Daha sonra deneyin",
+    "الخادم مشغول الآن. حاول لاحقًا",
+    "El servidor está ocupado. Inténtalo más tarde",
+  ],
+  share_err_render: [
+    "Rasm yaratib boʻlmadi",
+    "Не удалось создать картинку",
+    "Could not create the picture",
+    "Resim oluşturulamadı",
+    "تعذّر إنشاء الصورة",
+    "No se pudo crear la imagen",
+  ],
+
   // ---- appearance: style picker and adaptation axes (the style names style_<id> come from the bot's i18n catalog) ----
   set_style: ["Uslub", "Стиль", "Style", "Stil", "النمط", "Estilo"],
   style_soon: ["Tez orada", "Скоро", "Soon", "Yakında", "قريبًا", "Pronto"],

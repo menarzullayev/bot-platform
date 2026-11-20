@@ -45,6 +45,7 @@ export async function refreshMe(applyLang = false): Promise<boolean> {
       digits: me.settings.digits,
       keepHistory: me.settings.keep_history,
       authError: null,
+      degraded: Number.isInteger(me.degraded) && (me.degraded as number) > 0 ? (me.degraded as number) : 0,
     };
     // style and axes: a valid server value wins, null/unknown keeps what this device already has
     const s = me.settings;

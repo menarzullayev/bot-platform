@@ -6,21 +6,25 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "npm run build && wrangler deploy",
-    "build": "npm run typecheck:app && npm run build:app",
+    "build": "npm run typecheck:app && npm run build:app && npm run build:site",
+    "build:site": "node ../site/build.mjs",
     "build:app": "node ../miniapp/build.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:app": "tsc --noEmit -p ../miniapp/tsconfig.json",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply bots-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply bots-db --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply bots-db --remote",
+    "brand": "node ../brand/build.mjs"
   },
   "dependencies": {
     "grammy": "^1.46.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261120.1",
+    "@resvg/resvg-js": "^2.6.2",
     "esbuild": "^0.28.2",
     "happy-dom": "^21.0.4",
+    "jpeg-js": "^0.4.4",
     "typescript": "^7.0.2",
     "vitest": "^5.1.1",
     "wrangler": "^4.165.0"

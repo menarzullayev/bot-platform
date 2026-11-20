@@ -234,7 +234,7 @@ describe("Kit contract: glass", () => {
   });
 
   it("is a complete StylePack with the glass id, the glass tokens and a stylesheet", () => {
-    expect(Object.keys(pack).sort()).toEqual(["cssHref", "kit", "meta", "tokens"]);
+    expect(Object.keys(pack).sort()).toEqual(["cssHref", "drawShareCard", "kit", "meta", "tokens"]);
     expect(pack.meta.id).toBe("glass");
     expect(pack.meta.nameKey).toBe("style_glass");
     expect(pack.tokens).toBe(glassTokens);

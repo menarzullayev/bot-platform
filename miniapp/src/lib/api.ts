@@ -22,6 +22,17 @@ export interface MeResponse {
   settings: Settings;
   limits: { history: number };
   pro_stars: number;
+  /** DEC-013 degradation level: 0 = everything on, 1 = share cards off, 2 = server writes off too. Absent on old servers. */
+  degraded?: number;
+}
+
+/** Answer of POST /card. `prepared_id` is null when Telegram refused to prepare the message (the URL still works). */
+export interface CardResponse {
+  id: string;
+  url: string;
+  prepared_id: string | null;
+  prepared_expires_at: number | null;
+  expires_at: number;
 }
 
 export interface HistoryItem {
@@ -57,6 +68,8 @@ export interface Api {
   addHistory(expr: string, result: string): Promise<void>;
   clearHistory(): Promise<void>;
   invoice(): Promise<{ link: string; stars: number }>;
+  /** Uploads a share-card JPEG (<= 64 KB) with an optional plain-text caption. */
+  card(jpeg: Blob, caption: string): Promise<CardResponse>;
 }
 
 export interface ApiOptions {
@@ -72,15 +85,16 @@ export function createApi(o: ApiOptions): Api {
   if (!BOT_ID_RE.test(o.botId)) throw new Error("invalid bot id");
   const root = `${o.base ?? ""}/api/app/${o.botId}`;
 
-  async function call<T>(path: string, init: { method?: string; body?: unknown } = {}, auth = true): Promise<T> {
+  async function call<T>(path: string, init: { method?: string; body?: unknown; raw?: { body: Blob; type: string; headers?: Record<string, string> } } = {}, auth = true): Promise<T> {
     const headers: Record<string, string> = { accept: "application/json" };
     if (auth) headers.authorization = `tma ${o.initData}`;
     if (init.body !== undefined) headers["content-type"] = "application/json";
+    if (init.raw) Object.assign(headers, init.raw.headers, { "content-type": init.raw.type });
     const f = o.fetchFn ?? globalThis.fetch.bind(globalThis);
     const res = await f(root + path, {
       method: init.method ?? "GET",
       headers,
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      body: init.raw ? init.raw.body : init.body === undefined ? undefined : JSON.stringify(init.body),
     });
     let data: unknown = null;
     try {
@@ -109,5 +123,7 @@ export function createApi(o: ApiOptions): Api {
       await call("/history", { method: "DELETE" });
     },
     invoice: () => call("/invoice", { method: "POST" }),
+    card: (jpeg, caption) =>
+      call<CardResponse>("/card", { method: "POST", raw: { body: jpeg, type: "image/jpeg", headers: caption ? { "x-card-caption": encodeURIComponent(caption) } : undefined } }),
   };
 }

@@ -16,6 +16,7 @@ import {
   SUBSCRIPTION_PERIOD_S,
   buildPayload,
   historyLimit,
+  invoicePhoto,
   parseProConfig,
   type CalcProConfig,
 } from "../pro";
@@ -222,6 +223,7 @@ async function createInvoice(a: {
   userId: number;
   lang: Lang;
   stars: number;
+  publicBaseUrl?: string | null;
 }): Promise<string> {
   const title = plainText(t(a.lang, "pro_title")).slice(0, 32);
   const description = plainText(t(a.lang, "pro_features")).replace(/\s*\n\s*/g, ", ").slice(0, 255);
@@ -233,6 +235,7 @@ async function createInvoice(a: {
     currency: STARS_CURRENCY,
     prices: [{ label: title, amount: a.stars }],
     subscription_period: SUBSCRIPTION_PERIOD_S,
+    ...invoicePhoto(a.publicBaseUrl),
   };
   let res: Response;
   try {
@@ -432,6 +435,7 @@ async function route(req: Request, env: Env, deps: PlatformDeps, ctx?: WaitUntil
         userId: auth.user.id,
         lang,
         stars,
+        publicBaseUrl: config.publicBaseUrl,
       });
       return json({ link, stars });
     }

@@ -31,6 +31,9 @@ export interface WebApp {
   disableVerticalSwipes?(): void;
   BackButton?: BackButtonApi;
   HapticFeedback?: HapticApi;
+  /** Bot API 8.0: opens the "share message" picker for a message prepared with savePreparedInlineMessage. */
+  shareMessage?(preparedId: string, cb?: (sent: boolean) => void): void;
+  openTelegramLink?(url: string): void;
   openInvoice?(url: string, cb?: (status: "paid" | "cancelled" | "failed" | "pending") => void): void;
   onEvent(type: string, fn: () => void): void;
   offEvent?(type: string, fn: () => void): void;
@@ -169,5 +172,40 @@ export function onTelegramEvent(type: string, fn: () => void): void {
     tg?.onEvent(type, fn);
   } catch {
     /* ignore */
+  }
+}
+
+/**
+ * Shares a prepared inline message (Bot API 8.0 `shareMessage`). Resolves true when the user sent it, false when they
+ * dismissed the picker; rejects when the client cannot do it (old client, no Telegram), so the caller can use the link.
+ */
+export function shareMessage(preparedId: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    if (!tg || !atLeast("8.0") || !tg.shareMessage) {
+      reject(new Error("shareMessage unsupported"));
+      return;
+    }
+    // the callback normally fires when the picker closes; the timer only frees a stuck caller
+    const timer = setTimeout(() => resolve(false), 120_000);
+    try {
+      tg.shareMessage(preparedId, (sent) => {
+        clearTimeout(timer);
+        resolve(sent === true);
+      });
+    } catch (e) {
+      clearTimeout(timer);
+      reject(e);
+    }
+  });
+}
+
+/** Opens a t.me link inside Telegram (6.1+). Returns false when the client cannot. */
+export function openTelegramLink(url: string): boolean {
+  if (!tg || !atLeast("6.1") || !tg.openTelegramLink) return false;
+  try {
+    tg.openTelegramLink(url);
+    return true;
+  } catch {
+    return false;
   }
 }

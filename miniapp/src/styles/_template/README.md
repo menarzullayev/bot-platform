@@ -40,6 +40,15 @@ styles/<id>/
   `[data-part="veil|panel|body"]` and a `setOpen()` that toggles `data-open`; `Table` is a scroll wrapper whose cells
   carry `data-l` (column label); `Display.setResult` sets `data-kind` (none|preview|final|error) and `data-len` (m|l|xl).
 
+## Share card (optional, DEC-011)
+
+`StylePack.drawShareCard?(ctx, data, size, tokens, dark)` paints the picture a user shares from the calculator, converter and
+finance pages (720x405, one JPEG <= 60 KB). A pack without it simply shows no share button. Write `styles/<id>/share.ts`
+(see the four packs; helpers in `styles/share-kit.ts`: `drawText` fits text, `drawWrapped`, `drawMark` is the TezCalc mark,
+`drawFooterRow` the footer + `@tezcalc_bot`), then `drawShareCard` in your `index.ts`. Rules: fill the whole canvas first
+(JPEG has no alpha); system font stack only; every text pair AA on the surface it sits on (`share.test.ts` checks the pairs);
+`data.main` is always left-to-right, other text follows its script (the kit handles Arabic digits); no network, no images.
+
 ## Adaptation axes (DEC-007)
 
 `<html>` carries `data-contrast`, `data-density`, `data-lite`, `data-fs`, `data-style` (set by `contract/axes.ts` and

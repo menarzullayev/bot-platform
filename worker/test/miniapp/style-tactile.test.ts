@@ -42,7 +42,7 @@ beforeEach(() => {
 
 describe("Tactile: the pack", () => {
   it("is a complete StylePack with the tactile meta, tokens and a stylesheet", () => {
-    expect(Object.keys(pack).sort()).toEqual(["cssHref", "kit", "meta", "tokens"]);
+    expect(Object.keys(pack).sort()).toEqual(["cssHref", "drawShareCard", "kit", "meta", "tokens"]);
     expect(pack.meta).toBe(STYLE_META.tactile);
     expect(pack.meta.id).toBe("tactile");
     expect(pack.meta.nameKey).toBe("style_tactile");

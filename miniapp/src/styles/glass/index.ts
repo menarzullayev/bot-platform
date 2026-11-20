@@ -5,7 +5,8 @@ import { STYLE_META } from "../meta";
 import type { StylePack } from "../../contract/types";
 import { glassKit } from "./kit";
 import cssHref from "./pack.css?url";
+import { drawGlassShareCard } from "./share";
 import { glassTokens } from "./tokens";
 
-const pack: StylePack = { meta: STYLE_META.glass, kit: glassKit, cssHref, tokens: glassTokens };
+const pack: StylePack = { meta: STYLE_META.glass, kit: glassKit, cssHref, tokens: glassTokens, drawShareCard: drawGlassShareCard };
 export default pack;

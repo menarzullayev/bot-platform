@@ -14,7 +14,7 @@ describe("0004_cards_metrics.sql", () => {
     expect(() => db.raw.exec(sql)).not.toThrow(); // second application is a no-op
   });
 
-  it("cards has exactly the five columns of DEC-014 with the right constraints", () => {
+  it("cards has the five columns of DEC-014 plus the nullable mime of 0005", () => {
     const db = new SqliteDb();
     const cols = db.rows<{ name: string; type: string; notnull: number; pk: number }>("PRAGMA table_info(cards)");
     expect(cols.map((c) => [c.name, c.type, c.notnull, c.pk])).toEqual([
@@ -23,6 +23,7 @@ describe("0004_cards_metrics.sql", () => {
       ["user_id", "INTEGER", 1, 0],
       ["png", "BLOB", 1, 0],
       ["created_at", "INTEGER", 1, 0],
+      ["mime", "TEXT", 0, 0],
     ]);
   });
 

@@ -43,6 +43,8 @@ let bannerSlot!: HTMLElement;
 let tabs: TabsHandle | null = null;
 let shellReady = false;
 let unback: (() => void) | null = null;
+/** The light-mode notice (DEC-013) is shown once per session, for a few seconds. */
+let lightNoticeUntil = 0;
 
 async function makePage(id: TabId): Promise<Page> {
   switch (id) {
@@ -101,6 +103,13 @@ function paintBanner(): void {
   if (state.authError) {
     bannerSlot.hidden = false;
     bannerSlot.appendChild(ctx.kit.Notice({ kind: "error", title: t(state.authError) }).el);
+  } else if (state.degraded >= 1 && (lightNoticeUntil === 0 || Date.now() < lightNoticeUntil)) {
+    if (lightNoticeUntil === 0) {
+      lightNoticeUntil = Date.now() + 8000;
+      window.setTimeout(paintBanner, 8100);
+    }
+    bannerSlot.hidden = false;
+    bannerSlot.appendChild(ctx.kit.Notice({ kind: "info", title: t("share_light_title"), text: t("share_light_text") }).el);
   } else if (state.mode === "demo") {
     bannerSlot.hidden = false;
     bannerSlot.appendChild(ctx.kit.Notice({ kind: "info", title: t("open_in_telegram"), text: t("open_in_telegram_hint") }).el);
@@ -217,7 +226,7 @@ async function main(): Promise<void> {
       applyTheme();
     }
     if (changed.includes("style")) void activateStyle();
-    if (changed.includes("lang") || (changed.includes("isPro") && state.isPro !== wasPro) || changed.includes("authError")) {
+    if (changed.includes("lang") || (changed.includes("isPro") && state.isPro !== wasPro) || changed.includes("authError") || changed.includes("degraded")) {
       wasPro = state.isPro;
       rerenderAll();
     }

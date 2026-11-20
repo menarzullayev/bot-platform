@@ -2,6 +2,7 @@ import { InlineKeyboard, type Bot, type Context } from "grammy";
 import type { Db } from "../../db";
 import { detectLang, isLang, t, type Lang } from "../../i18n";
 import { errInfo, log } from "../../log";
+import { count } from "../../metrics";
 import {
   STARS_CURRENCY,
   SUBSCRIPTION_PERIOD_S,
@@ -9,6 +10,7 @@ import {
   checkPaymentPayload,
   getEntitlement,
   getUserLang,
+  invoicePhoto,
   lastPayments,
   processSuccessfulPayment,
 } from "../../pro";
@@ -24,6 +26,8 @@ export interface ProDeps {
   defaultLang: Lang;
   /** Public support contact (@username, https link or e-mail) shown in /paysupport. */
   supportContact?: string;
+  /** PUBLIC_BASE_URL (null/undefined: the invoice goes out without a photo). */
+  publicBaseUrl?: string | null;
 }
 
 const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -71,6 +75,7 @@ export function installPro(bot: Bot, d: ProDeps): void {
       await ctx.reply(t(lang, "pro_cancel_info"), { parse_mode: "HTML" });
       return;
     }
+    count(d.db, d.botId, "pro:view");
     const head = `${t(lang, "pro_title")}\n\n${t(lang, "pro_features")}\n\n`;
     const e = await getEntitlement(d.db, d.botId, uid, d.now());
     if (e.isPro) {
@@ -102,7 +107,8 @@ export function installPro(bot: Bot, d: ProDeps): void {
       const description = stripHtml(t(lang, "pro_features")).replace(/\s*\n\s*/g, ", ").slice(0, 255);
       const link = await ctx.api.createInvoiceLink(title, description, buildPayload(d.botId, uid), "", STARS_CURRENCY, [
         { label: title, amount: d.proStars },
-      ], { subscription_period: SUBSCRIPTION_PERIOD_S });
+      ], { subscription_period: SUBSCRIPTION_PERIOD_S, ...invoicePhoto(d.publicBaseUrl) });
+      count(d.db, d.botId, "pro:view");
       await ctx.reply(`${t(lang, "pro_title")}\n\n${t(lang, "pro_price", { stars: d.proStars })}`, {
         parse_mode: "HTML",
         reply_markup: new InlineKeyboard().url(`⭐ ${d.proStars}`, link),
@@ -163,6 +169,7 @@ export function installPro(bot: Bot, d: ProDeps): void {
         log("info", "pro: duplicate successful_payment ignored", { botId: d.botId, userId: fromId, chargeId });
         return;
       }
+      count(d.db, d.botId, "pro:buy");
       log("info", "pro: payment granted", {
         botId: d.botId,
         userId: fromId,

@@ -5,6 +5,7 @@ import type { Bot } from "grammy";
 import type { InlineQueryResult } from "grammy/types";
 import { detectLang, t } from "../../i18n";
 import { errInfo, log } from "../../log";
+import { count } from "../../metrics";
 import { computeInput } from "./engine";
 import { stableId } from "./inline";
 import { renderError, resultMessage, code } from "./render";
@@ -42,6 +43,7 @@ export function installGuest(bot: Bot, svc: Svc): void {
         if (c.kind === "not_math") built = { text: t(lang, "guest_hint"), html: false, title: "TezCalc" };
         else if (c.kind === "error") built = { text: renderError(lang, c), html: true, title: "TezCalc" };
         else {
+          count(svc.db, svc.botId, "f:guest");
           const extra = c.variants.map((v) => `≈ ${code(lang, v)}`);
           built = { text: [resultMessage(lang, c, c.result), ...extra].join("\n"), html: true, title: c.result.slice(0, 100) };
         }

@@ -114,3 +114,30 @@ export function parseAxes(raw: unknown): Axes {
 
 /** html attributes that carry the axes. Packs and core.css select on them. */
 export const AXIS_ATTRS = { contrast: "data-contrast", density: "data-density", lite: "data-lite", fs: "data-fs" } as const;
+
+// ---------- share card (DEC-011, DEC-014) ----------
+
+/** What a share card shows. Every field is plain, already localized text. */
+export const SHARE_KINDS = ["calc", "convert", "loan"] as const;
+export type ShareKind = (typeof SHARE_KINDS)[number];
+
+export interface ShareData {
+  kind: ShareKind;
+  /** Small caption (the tool: Calculator, Converter, Loan ...). */
+  title: string;
+  /** The hero value: a result, a converted amount, a monthly payment. Drawn left-to-right (isolated) in every language. */
+  main: string;
+  /** Context under the hero: the expression, "100 km to mi", the payment caption. May wrap to two lines. */
+  sub: string;
+  /** One quiet line at the bottom (date, rate, totals). May be empty. */
+  footer: string;
+}
+
+/** Card size in px. The canvas is drawn at devicePixelRatio 1, so one unit is one pixel of the JPEG. */
+export interface ShareSize {
+  w: number;
+  h: number;
+}
+
+/** The share card is always this size (16:9, small enough for a <= 60 KB JPEG, large enough to read in a chat). */
+export const SHARE_SIZE: ShareSize = { w: 720, h: 405 };

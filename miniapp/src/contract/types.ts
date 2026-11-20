@@ -17,7 +17,7 @@
 //     `--gap`/`--ctl` (density), `data-contrast` (token override) — read them from CSS, do not branch in JS.
 
 import type { Child } from "../ui/dom";
-import type { StyleId, StyleMeta, StyleTokens } from "./model";
+import type { ShareData, ShareSize, StyleId, StyleMeta, StyleTokens, TokenSet } from "./model";
 
 export * from "./model";
 export type { Child };
@@ -478,4 +478,11 @@ export interface StylePack {
    */
   cssHref: string;
   tokens: StyleTokens;
+  /**
+   * Optional (DEC-011): paints the share card of this style onto a 2D context of `size` (the whole canvas, opaque: JPEG has
+   * no alpha). `tokens` is the token set of the scheme being shown (light/dark, high contrast already applied) and `dark`
+   * says which scheme that is. Must only use the system font stack, keep text AA-readable and isolate `data.main` as LTR.
+   * A pack without it simply offers no share button.
+   */
+  drawShareCard?(ctx: CanvasRenderingContext2D, data: ShareData, size: ShareSize, tokens: TokenSet, dark: boolean): void;
 }

@@ -5,7 +5,8 @@ import { STYLE_META } from "../meta";
 import type { StylePack } from "../../contract/types";
 import { fintechKit } from "./kit";
 import cssHref from "./pack.css?url";
+import { drawFintechShareCard } from "./share";
 import { fintechTokens } from "./tokens";
 
-const pack: StylePack = { meta: STYLE_META.fintech, kit: fintechKit, cssHref, tokens: fintechTokens };
+const pack: StylePack = { meta: STYLE_META.fintech, kit: fintechKit, cssHref, tokens: fintechTokens, drawShareCard: drawFintechShareCard };
 export default pack;

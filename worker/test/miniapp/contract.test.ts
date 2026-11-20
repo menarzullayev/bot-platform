@@ -82,7 +82,9 @@ for (const [packName, entry] of PACKS) {
       expect(pack.tokens.light.accent).toMatch(/^#[0-9a-f]{6}$/);
       expect(typeof pack.cssHref).toBe("string");
       expect(pack.cssHref).toMatch(/\.css$/);
-      expect(Object.keys(pack).sort()).toEqual(["cssHref", "kit", "meta", "tokens"]);
+      // drawShareCard is the one optional member (DEC-011); a pack that has it must give a function
+      expect(Object.keys(pack).filter((k) => k !== "drawShareCard").sort()).toEqual(["cssHref", "kit", "meta", "tokens"]);
+      if ("drawShareCard" in pack) expect(typeof pack.drawShareCard).toBe("function");
       expect(packCss().length).toBeGreaterThan(500);
     });
 

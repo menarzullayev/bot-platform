@@ -9,6 +9,7 @@ import type { ChipHandle, DisplayHandle, IconButtonHandle, KeyKind, ResultKind }
 import { clear, h } from "../dom";
 import { openSheet, toast } from "../overlays";
 import { clearHistoryAll, pushHistory, saveSettings, syncHistory } from "../session";
+import { runShare, shareAvailable } from "../share";
 import { prefs, state, t } from "../state";
 import { haptic } from "../tg";
 import type { Page, PageCtx } from "./types";
@@ -23,6 +24,8 @@ export function createCalcPage(ctx: PageCtx): Page {
   let lastResult = "";
   let lastResultKind: ResultKind = "none";
   let lastErrorText = "";
+  let lastExpr = "";
+  let shareBtn: IconButtonHandle | null = null;
   let display!: DisplayHandle;
   let angleChip!: ChipHandle;
   // short screens show either the scientific grid or the digit pad (CSS reads data-sci); tall ones show both
@@ -47,6 +50,8 @@ export function createCalcPage(ctx: PageCtx): Page {
     lastResultKind = kind;
     lastResult = kind === "error" ? "" : text;
     if (kind === "error") lastErrorText = text;
+    // the share button appears only next to a finished result
+    if (shareBtn) shareBtn.el.hidden = !(kind === "final" && lastResult !== "");
   }
 
   function preview(): void {
@@ -73,6 +78,7 @@ export function createCalcPage(ctx: PageCtx): Page {
     }
     haptic.result("success");
     ans = r.value;
+    lastExpr = expr;
     display.setPrev(isRtl(state.lang) ? isolateLtr(expr) + " =" : expr + " =");
     showResult(r.text, "final");
     pushHistory(expr, r.text);
@@ -183,6 +189,18 @@ export function createCalcPage(ctx: PageCtx): Page {
       },
     });
     const hist = kit.IconButton({ icon: "history", label: t("calc_history"), onClick: () => void openHistory() });
+    shareBtn = shareAvailable()
+      ? kit.IconButton({
+          icon: "share",
+          label: t("share"),
+          onClick: () =>
+            void runShare(
+              { kind: "calc", title: t("nav_calc"), main: lastResult, sub: lastExpr, footer: new Date().toISOString().slice(0, 10) },
+              shareBtn?.el,
+            ),
+        })
+      : null;
+    if (shareBtn) shareBtn.el.hidden = true;
     display = kit.Display({
       placeholder: t("calc_placeholder"),
       inputLabel: t("calc_placeholder"),
@@ -212,7 +230,7 @@ export function createCalcPage(ctx: PageCtx): Page {
       haptic.select();
     }
     el.dataset.sci = sciOn ? "on" : "off";
-    el.append(h("div", { class: "calc-bar" }, hist.el, h("div", { class: "grow" }), sciToggle.el, angleChip.el, kbd.el), display.el, sci, pad);
+    el.append(h("div", { class: "calc-bar" }, hist.el, shareBtn?.el, h("div", { class: "grow" }), sciToggle.el, angleChip.el, kbd.el), display.el, sci, pad);
     if (lastResultKind === "final" || lastResultKind === "error") showResult(lastResultKind === "error" ? lastErrorText : lastResult, lastResultKind);
     else preview();
   }

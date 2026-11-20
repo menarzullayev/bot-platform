@@ -232,7 +232,7 @@ describe("techno Kit contract", () => {
     expect(pack.meta.nameKey).toBe("style_techno");
     expect(pack.tokens).toBe(technoTokens);
     expect(pack.cssHref).toBe("/app/pack-techno.css");
-    expect(Object.keys(pack).sort()).toEqual(["cssHref", "kit", "meta", "tokens"]);
+    expect(Object.keys(pack).sort()).toEqual(["cssHref", "drawShareCard", "kit", "meta", "tokens"]);
   });
 
   it("implements exactly the contract's 27 components", () => {

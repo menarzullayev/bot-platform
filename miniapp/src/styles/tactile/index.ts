@@ -5,7 +5,8 @@ import { STYLE_META } from "../meta";
 import type { StylePack } from "../../contract/types";
 import { tactileKit } from "./kit";
 import cssHref from "./pack.css?url";
+import { drawTactileShareCard } from "./share";
 import { tactileTokens } from "./tokens";
 
-const pack: StylePack = { meta: STYLE_META.tactile, kit: tactileKit, cssHref, tokens: tactileTokens };
+const pack: StylePack = { meta: STYLE_META.tactile, kit: tactileKit, cssHref, tokens: tactileTokens, drawShareCard: drawTactileShareCard };
 export default pack;

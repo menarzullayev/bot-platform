@@ -17,6 +17,7 @@ import {
 import { touchUser } from "../../db";
 import { t, wrapForRtl, type Lang, type MessageKey } from "../../i18n";
 import { errInfo, log } from "../../log";
+import { count } from "../../metrics";
 import { historyLimit } from "../../pro";
 import { widgetSendParams } from "../../widget/send";
 import { requirePro } from "./pro";
@@ -192,6 +193,7 @@ async function runSymbolic(svc: Svc, ctx: Context, kind: SymKind, args: string):
     await reply(ctx, t(lang, key, { pos: 1, name: "?" }), url ? { reply_markup: new InlineKeyboard().webApp(t(lang, "mini_open"), url) } : {});
     return;
   }
+  count(svc.db, svc.botId, `f:${kind}`);
   const msg = stepsMessage(lang, head, steps);
   await reply(ctx, msg.length > 4096 ? t(lang, "err_too_complex") : msg);
 }
@@ -406,6 +408,7 @@ export function installCommands(bot: Bot, svc: Svc): void {
     let res: Computed | null = null;
     if (args !== "") res = await computeConvertCommand(args, computeOptions(svc, u, ctx.from?.id, false));
     const text = res ? renderComputed(u.lang, res) : null;
+    if (text) count(svc.db, svc.botId, "f:convert");
     await reply(ctx, text ?? t(u.lang, "converter_help"));
   });
 
@@ -426,6 +429,7 @@ export function installCommands(bot: Bot, svc: Svc): void {
       await reply(ctx, t(lang, "loan_help"));
       return;
     }
+    count(svc.db, svc.botId, "f:loan");
     const pay =
       r.type === "diff" && r.firstPayment && r.lastPayment
         ? `${money(r.firstPayment, lang)} → ${money(r.lastPayment, lang)}`
@@ -465,6 +469,7 @@ export function installCommands(bot: Bot, svc: Svc): void {
       await reply(ctx, t(lang, "vat_help"));
       return;
     }
+    count(svc.db, svc.botId, "f:vat");
     const rate = parsed.rate ?? Decimal.from(12);
     const text = [
       `<b>${t(lang, "vat_label_net")}</b>: ${code(lang, money(r.net, lang))}`,

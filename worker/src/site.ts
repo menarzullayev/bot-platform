@@ -55,5 +55,15 @@ export async function serveSite(req: Request, env: Env): Promise<Response> {
     applySiteHeaders(headers, (headers.get("content-type") ?? "").toLowerCase().startsWith("text/html"));
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
   }
+  // friendly HTML 404 page when the visitor is a browser (the file is built by site/build.mjs; plain text otherwise)
+  if ((req.headers.get("accept") ?? "").includes("text/html")) {
+    const res = await env.ASSETS.fetch(new Request(new URL("/404.html", url), { method: req.method }));
+    if (res.status === 200) {
+      const headers = new Headers(res.headers);
+      applySiteHeaders(headers, true);
+      headers.set("cache-control", "no-store");
+      return new Response(res.body, { status: 404, headers });
+    }
+  }
   return notFound();
 }

@@ -3,6 +3,7 @@
 import type { Bot } from "grammy";
 import { detectLang, t } from "../../i18n";
 import { errInfo, log } from "../../log";
+import { count } from "../../metrics";
 import { computeInput } from "./engine";
 import { setAns, takeHint } from "./memory";
 import { esc, renderComputed } from "./render";
@@ -54,6 +55,8 @@ export function installMessages(bot: Bot, svc: Svc): void {
       if (takeHint(svc.botId, from.id, svc.now())) await reply(ctx, t(u.lang, "not_math_hint"));
       return;
     }
+    // anonymous in-memory counter (DEC-015): no D1 write on this path
+    count(svc.db, svc.botId, c.kind === "calc" ? "f:calc" : "f:convert");
     await reply(ctx, renderComputed(u.lang, c) ?? esc(""));
 
     if (c.kind === "calc") setAns(svc.botId, from.id, c.value);

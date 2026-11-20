@@ -8,6 +8,7 @@ import {
   CAPTION_MAX,
   CARD_MAX_BYTES,
   CARD_TTL_S,
+  assertJpeg,
   assertPng,
   newCardId,
   purgeExpiredCards,
@@ -26,6 +27,7 @@ import {
   dayOfSec,
   eqBytes,
   initDataFor,
+  makeJpeg,
   makePng,
 } from "./p5-helpers";
 import { TEST_KEY } from "./helpers";
@@ -345,7 +347,8 @@ describe("POST card: payload validation", () => {
   it.each([
     ["application/json"],
     ["text/plain"],
-    ["image/jpeg"],
+    ["image/jpegx"],
+    ["image/gif"],
     ["image/pngx"],
     ["application/octet-stream"],
     ["multipart/form-data; boundary=x"],
@@ -616,8 +619,10 @@ describe("GET /card/<id>.png", () => {
     ["21 characters", "/card/" + "a".repeat(21) + ".png"],
     ["23 characters", "/card/" + "a".repeat(23) + ".png"],
     ["bad characters", "/card/" + "a".repeat(20) + "+/.png"],
-    ["wrong extension", "/card/" + "a".repeat(22) + ".jpg"],
+    ["wrong extension", "/card/" + "a".repeat(22) + ".gif"],
+    ["jpeg spelled out", "/card/" + "a".repeat(22) + ".jpeg"],
     ["upper-case extension", "/card/" + "a".repeat(22) + ".PNG"],
+    ["upper-case jpg", "/card/" + "a".repeat(22) + ".JPG"],
     ["no extension", "/card/" + "a".repeat(22)],
     ["a nested path", "/card/x/" + "a".repeat(22) + ".png"],
     ["a path traversal attempt", "/card/../" + "a".repeat(22) + ".png"],
@@ -810,5 +815,143 @@ describe("test helper wiring", () => {
     const db = new SqliteDb();
     db.setReq(DAY, 123);
     expect(await getDegradation(db, NOW)).toBe(0);
+  });
+});
+
+// ---- JPEG cards (Telegram InlineQueryResultPhoto.photo_url accepts JPEG only) -----------------------------------------
+
+describe("POST card: JPEG", () => {
+  const jpeg = (size = 600) => makeJpeg(720, 405, size);
+
+  it("201 with a .jpg url; the stored mime is image/jpeg and the bytes are exact", async () => {
+    const c = await ctx();
+    const bytes = jpeg(900);
+    const r = await c.post(bytes, { contentType: "image/jpeg" });
+    expect(r.status).toBe(201);
+    const j = (await r.json()) as { id: string; url: string };
+    expect(j.url).toBe(`https://example.test/card/${j.id}.jpg`);
+    const row = c.db.rows<{ png: Uint8Array; mime: string | null }>("SELECT png, mime FROM cards")[0];
+    expect(row.mime).toBe("image/jpeg");
+    expect(eqBytes(row.png, bytes)).toBe(true);
+  });
+
+  it("the prepared message photo_url is the JPEG URL", async () => {
+    const c = await ctx();
+    const j = (await (await c.post(jpeg(), { contentType: "image/jpeg; charset=binary" })).json()) as { id: string };
+    const res = c.calls[0].body.result as { photo_url: string; thumbnail_url: string };
+    expect(res.photo_url).toBe(`https://example.test/card/${j.id}.jpg`);
+    expect(res.thumbnail_url).toBe(res.photo_url);
+  });
+
+  it("a PNG still works: .png url and NULL mime", async () => {
+    const c = await ctx();
+    const j = (await (await c.post(png())).json()) as { id: string; url: string };
+    expect(j.url.endsWith(".png")).toBe(true);
+    expect(c.db.rows<{ mime: string | null }>("SELECT mime FROM cards")[0].mime).toBeNull();
+  });
+
+  it("exactly 64 KB is accepted, 64 KB + 1 is 413", async () => {
+    const c = await ctx();
+    expect((await c.post(jpeg(CARD_MAX_BYTES), { contentType: "image/jpeg" })).status).toBe(201);
+    expect((await c.post(jpeg(CARD_MAX_BYTES + 1), { contentType: "image/jpeg" })).status).toBe(413);
+  });
+
+  const mutate = (f: (b: Uint8Array) => void): Uint8Array => {
+    const b = jpeg();
+    f(b);
+    return b;
+  };
+  it.each([
+    ["a PNG body declared as JPEG", png()],
+    ["bad SOI", mutate((b) => (b[0] = 0))],
+    ["missing EOI", mutate((b) => (b[b.length - 1] = 0))],
+    ["width above 4096", makeJpeg(4097, 8)],
+    ["height above 4096", makeJpeg(8, 5000)],
+    ["zero width", makeJpeg(0, 8)],
+    ["no frame header (SOS first)", Uint8Array.from([0xff, 0xd8, 0xff, 0xda, 0x00, 0x08, 1, 1, 0, 0, 0x3f, 0, 9, 9, 0xff, 0xd9])],
+    ["too short", Uint8Array.from([0xff, 0xd8, 0xff, 0xd9])],
+  ])("400 invalid_jpeg for %s", async (_n, body) => {
+    const c = await ctx();
+    const r = await c.post(body, { contentType: "image/jpeg" });
+    expect(r.status).toBe(400);
+    expect(await r.json()).toMatchObject({ error: "invalid_jpeg" });
+    expect(c.db.rows("SELECT * FROM cards")).toHaveLength(0);
+    expect(c.calls).toHaveLength(0);
+  });
+
+  it("a JPEG body declared as PNG is rejected", async () => {
+    const c = await ctx();
+    const r = await c.post(jpeg(), { contentType: "image/png" });
+    expect(r.status).toBe(400);
+  });
+
+  it("assertJpeg reads the SOF of a progressive file (SOF2) and skips DHT/DQT segments", () => {
+    const b = makeJpeg(100, 50);
+    const sofAt = b.findIndex((v, i) => v === 0xff && b[i + 1] === 0xc0);
+    const withDht = Uint8Array.from([...b.slice(0, sofAt), 0xff, 0xc4, 0x00, 0x05, 0, 0, 0, ...b.slice(sofAt)]);
+    withDht[withDht.findIndex((v, i) => v === 0xff && withDht[i + 1] === 0xc0) + 1] = 0xc2;
+    expect(() => assertJpeg(withDht)).not.toThrow();
+  });
+
+  it("an invalid JPEG does not consume the hourly quota", async () => {
+    const c = await ctx();
+    for (let i = 0; i < 12; i++) await c.post(Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]), { contentType: "image/jpeg" });
+    expect((await c.post(jpeg(), { contentType: "image/jpeg" })).status).toBe(201);
+  });
+});
+
+describe("GET /card/<id>.jpg", () => {
+  async function create(c: Ctx, kind: "jpg" | "png"): Promise<{ id: string; bytes: Uint8Array }> {
+    const bytes = kind === "jpg" ? makeJpeg(720, 405, 800) : png(800);
+    const r = await c.post(bytes, { contentType: kind === "jpg" ? "image/jpeg" : "image/png" });
+    return { id: ((await r.json()) as { id: string }).id, bytes };
+  }
+  const get = (c: Ctx, path: string, cache?: MapCache, method = "GET") =>
+    serveCard({ req: new Request(`https://example.test${path}`, { method }), db: c.db, now: NOW + 10, nowMs: (NOW + 10) * 1000, cache });
+
+  it("serves a JPEG with image/jpeg and the exact bytes", async () => {
+    const c = await ctx();
+    const { id, bytes } = await create(c, "jpg");
+    const r = await get(c, `/card/${id}.jpg`);
+    expect(r.status).toBe(200);
+    expect(r.headers.get("content-type")).toBe("image/jpeg");
+    expect(r.headers.get("content-length")).toBe(String(bytes.length));
+    expect(eqBytes(new Uint8Array(await r.arrayBuffer()), bytes)).toBe(true);
+  });
+
+  it("HEAD works for a JPEG", async () => {
+    const c = await ctx();
+    const { id } = await create(c, "jpg");
+    const r = await get(c, `/card/${id}.jpg`, undefined, "HEAD");
+    expect(r.status).toBe(200);
+    expect(r.headers.get("content-type")).toBe("image/jpeg");
+  });
+
+  it("the extension must match the stored format: JPEG at .png and PNG at .jpg are 404", async () => {
+    const c = await ctx();
+    const a = await create(c, "jpg");
+    const b = await create(c, "png");
+    expect((await get(c, `/card/${a.id}.png`)).status).toBe(404);
+    expect((await get(c, `/card/${b.id}.jpg`)).status).toBe(404);
+    expect((await get(c, `/card/${b.id}.png`)).status).toBe(200);
+  });
+
+  it("a legacy row (mime NULL) is a PNG", async () => {
+    const c = await ctx();
+    const id = newCardId();
+    c.db.exec("INSERT INTO cards (id, bot_id, user_id, png, created_at) VALUES (?, ?, ?, ?, ?)", id, BOT_ID, USER, png(), NOW);
+    expect((await get(c, `/card/${id}.png`)).headers.get("content-type")).toBe("image/png");
+  });
+
+  it("the edge copy is keyed by the .jpg URL and keeps image/jpeg", async () => {
+    const c = await ctx();
+    const { id } = await create(c, "jpg");
+    const cache = new MapCache();
+    await get(c, `/card/${id}.jpg`, cache);
+    expect([...cache.store.keys()]).toEqual([`https://example.test/card/${id}.jpg`]);
+    c.db.resetCounters();
+    const hit = await get(c, `/card/${id}.jpg`, cache);
+    expect(c.db.reads).toBe(0);
+    expect(hit.headers.get("content-type")).toBe("image/jpeg");
   });
 });

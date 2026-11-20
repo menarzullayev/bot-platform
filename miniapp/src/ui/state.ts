@@ -28,6 +28,8 @@ export interface AppState {
   mode: "telegram" | "demo";
   /** Set when the server rejected our initData (shown as a banner). */
   authError: "err_auth" | "err_expired" | null;
+  /** Server degradation level (DEC-013): >= 1 means share cards are off ("light mode"). */
+  degraded: number;
   botId: string | null;
   api: Api | null;
   rates: (FxRates & { stale: boolean }) | null;
@@ -51,6 +53,7 @@ export const state: AppState = {
   historyLimit: 20,
   mode: "demo",
   authError: null,
+  degraded: 0,
   botId: null,
   api: null,
   rates: null,

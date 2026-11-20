@@ -137,6 +137,21 @@ export function makePng(w = 8, h = 8, size = 200): Uint8Array {
   return out;
 }
 
+/** A minimal structurally valid JPEG (SOI, APP0, SOF0 with the given size, SOS, filler, EOI) of about `size` bytes. */
+export function makeJpeg(w = 720, h = 405, size = 400): Uint8Array {
+  const head = [0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00];
+  const sof = [0xff, 0xc0, 0x00, 0x0b, 0x08, h >> 8, h & 255, w >> 8, w & 255, 0x01, 0x01, 0x11, 0x00];
+  const sos = [0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00];
+  const fixed = head.length + sof.length + sos.length + 2;
+  const fill = Math.max(0, size - fixed);
+  const out = new Uint8Array(fixed + fill);
+  out.set([...head, ...sof, ...sos], 0);
+  // entropy data: never 0xFF so no accidental markers
+  for (let i = 0; i < fill; i++) out[head.length + sof.length + sos.length + i] = (i * 31 + 7) & 0x7f;
+  out.set([0xff, 0xd9], out.length - 2);
+  return out;
+}
+
 /** Map-backed Cache API double that records the TTL of every put. */
 export class MapCache implements CacheLike {
   store = new Map<string, { body: Uint8Array; headers: Headers }>();

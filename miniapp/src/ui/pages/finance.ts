@@ -4,6 +4,7 @@ import { computeTool, defaultsOf, TOOL_IDS, TOOLS, type ScheduleLine, type ToolI
 import type { TableHandle } from "../../contract/types";
 import { clear, h } from "../dom";
 import { openSheet } from "../overlays";
+import { runShare, shareAvailable } from "../share";
 import { lsGet, lsSet, state, t } from "../state";
 import type { Page, PageCtx } from "./types";
 import type { MessageKey, MsKey } from "../../i18n";
@@ -54,6 +55,29 @@ export function createFinancePage(ctx: PageCtx): Page {
       });
       btn.el.classList.add("sched-btn");
       card.actions.appendChild(btn.el);
+    }
+    if (hero && shareAvailable()) {
+      const share = kit.Button({
+        size: "slim",
+        block: true,
+        icon: "share",
+        label: t("share"),
+        onClick: () =>
+          void runShare(
+            {
+              kind: tool === "loan" ? "loan" : "calc",
+              title: tt(TOOLS[tool].title),
+              main: hero.value,
+              sub: tt(hero.label),
+              footer: rest
+                .slice(0, 2)
+                .map((row) => `${tt(row.label)}: ${row.value}`)
+                .join("  ·  "),
+            },
+            share.el,
+          ),
+      });
+      card.actions.appendChild(share.el);
     }
     card.update({
       mainLabel: hero ? tt(hero.label) : undefined,

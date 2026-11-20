@@ -4,10 +4,11 @@ import { Decimal } from "../../../../worker/src/calc/decimal";
 import { availableCurrencies, categories, convert, defaultPair, itemsOf, searchItems, type Category } from "../../lib/convert";
 import { formatResult, isolateLtr, parseNumber } from "../../lib/num";
 import { isRtl } from "../../i18n";
-import type { ResultCardHandle, SelectHandle } from "../../contract/types";
+import type { ButtonHandle, ResultCardHandle, SelectHandle } from "../../contract/types";
 import { clear, h } from "../dom";
 import { openPicker, toast } from "../overlays";
 import { ensureRates } from "../session";
+import { runShare, shareAvailable } from "../share";
 import { lsGet, lsSet, prefs, state, t } from "../state";
 import { haptic } from "../tg";
 import type { Page, PageCtx } from "./types";
@@ -35,6 +36,9 @@ export function createConvertPage(ctx: PageCtx): Page {
   let [from, to] = saved ? [saved.from, saved.to] : defaultPair(cat);
   let value = saved?.value ?? "1";
   let outText = "";
+  let outSub = "";
+  let outRate = "";
+  let shareBtn: ButtonHandle | null = null;
   let result!: ResultCardHandle;
   let fromSel!: SelectHandle;
   let toSel!: SelectHandle;
@@ -52,6 +56,7 @@ export function createConvertPage(ctx: PageCtx): Page {
     toSel.setText(label(to));
     let note: { text: string; warn?: boolean; busy?: boolean } | null = null;
     let hint = "";
+    outRate = "";
     if (cat === "currency") {
       if (state.ratesStatus === "loading" || state.ratesStatus === "idle") note = { text: t("conv_rates_loading"), busy: true };
       else if (!state.rates) note = { text: t("conv_rates_unavailable") };
@@ -61,6 +66,7 @@ export function createConvertPage(ctx: PageCtx): Page {
       }
     }
     let main = "—";
+    let converted = false;
     const v = parseNumber(value);
     if (v) {
       const r = convert(cat, v, from, to, state.rates);
@@ -68,14 +74,18 @@ export function createConvertPage(ctx: PageCtx): Page {
         main = r.error === "no_rate" ? "—" : t(r.error === "units_mismatch" ? "err_units_mismatch" : "err_generic");
       } else {
         main = formatResult(r.value, prefs());
+        converted = true;
         const one = convert(cat, Decimal.ONE, from, to, state.rates);
         if (one.ok) {
           const line = t("conv_rate_line", { from, to, rate: formatResult(one.value, prefs()) });
           hint = isRtl(state.lang) ? isolateLtr(line) : line;
+          outRate = line;
         }
       }
     }
     outText = main;
+    outSub = `${value.trim()} ${from} → ${to}`;
+    if (shareBtn) shareBtn.el.hidden = !converted;
     result.update({ main: [main], hint, note });
   }
 
@@ -143,6 +153,15 @@ export function createConvertPage(ctx: PageCtx): Page {
         if (outText && outText !== "—") void navigator.clipboard?.writeText(outText).then(() => toast(t("copied")), () => undefined);
       },
     });
+    shareBtn = shareAvailable()
+      ? kit.Button({
+          size: "slim",
+          icon: "share",
+          label: t("share"),
+          onClick: () => void runShare({ kind: "convert", title: t("nav_convert"), main: `${outText} ${to}`, sub: outSub, footer: outRate }, shareBtn?.el),
+        })
+      : null;
+    if (shareBtn) result.actions.appendChild(shareBtn.el);
     el.append(
       chips.el,
       kit.Card({ class: "conv-in" }, input.el).el,

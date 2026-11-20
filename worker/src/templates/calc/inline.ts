@@ -4,10 +4,12 @@ import type { Bot } from "grammy";
 import type { InlineQueryResult } from "grammy/types";
 import { detectLang, t, wrapForRtl, type Lang } from "../../i18n";
 import { errInfo, log } from "../../log";
+import { count } from "../../metrics";
 import { computeInput, type ErrOut } from "./engine";
 import { plainError, renderError, resultMessage, shortExpr } from "./render";
 import { computeOptions, loadUser, type Svc } from "./shared";
 import { miniAppUrl } from "./commands";
+import { inlineThumb } from "../../pro";
 
 /** Two independent 32-bit FNV-1a hashes as 16 hex chars: a stable result id (<= 64 bytes) without async crypto. */
 export function stableId(s: string): string {
@@ -27,23 +29,25 @@ const content = (html: string) => ({
   link_preview_options: { is_disabled: true },
 });
 
-function helpResult(lang: Lang): InlineQueryResult {
+function helpResult(lang: Lang, base?: string | null): InlineQueryResult {
   return {
     type: "article",
     id: "help",
     title: t(lang, "inline_help_title"),
     description: t(lang, "inline_help_desc"),
     input_message_content: { message_text: t(lang, "guest_hint") },
+    ...inlineThumb(base, "calc"),
   };
 }
 
-function errorResult(lang: Lang, query: string, e: ErrOut): InlineQueryResult {
+function errorResult(lang: Lang, query: string, e: ErrOut, base?: string | null): InlineQueryResult {
   return {
     type: "article",
     id: `err-${stableId(query + lang + e.key)}`,
     title: plainError(lang, e).slice(0, 100),
     description: t(lang, "inline_help_desc"),
     input_message_content: content(renderError(lang, e)),
+    ...inlineThumb(base, "error"),
   };
 }
 
@@ -58,6 +62,7 @@ async function answer(
 export function installInline(bot: Bot, svc: Svc): void {
   bot.on("inline_query", async (ctx) => {
     const q = ctx.inlineQuery;
+    const base = svc.appConfig.publicBaseUrl;
     const reply = (results: InlineQueryResult[], extra?: Record<string, unknown>) =>
       answer(ctx as unknown as Parameters<typeof answer>[0], results, extra);
     try {
@@ -69,6 +74,7 @@ export function installInline(bot: Bot, svc: Svc): void {
             id: "rate",
             title: t(lang, "rate_limited").slice(0, 100),
             input_message_content: { message_text: t(lang, "rate_limited") },
+            ...inlineThumb(svc.appConfig.publicBaseUrl, "error"),
           },
         ], { cache_time: 5 });
         return;
@@ -78,18 +84,19 @@ export function installInline(bot: Bot, svc: Svc): void {
       const text = q.query.trim();
       if (text === "") {
         const url = miniAppUrl(svc);
-        await reply([helpResult(lang)], url ? { button: { text: t(lang, "mini_open").slice(0, 64), web_app: { url } } } : {});
+        await reply([helpResult(lang, base)], url ? { button: { text: t(lang, "mini_open").slice(0, 64), web_app: { url } } } : {});
         return;
       }
       const c = await computeInput(text, computeOptions(svc, u, q.from.id, false));
       if (c.kind === "not_math") {
-        await reply([helpResult(lang)]);
+        await reply([helpResult(lang, base)]);
         return;
       }
       if (c.kind === "error") {
-        await reply([errorResult(lang, text, c)]);
+        await reply([errorResult(lang, text, c, base)]);
         return;
       }
+      count(svc.db, svc.botId, "f:inline");
       const left = c.kind === "calc" ? c.expr : c.fromText;
       const desc = `${shortExpr(left, 120)} · ${t(lang, "inline_result_desc")}`;
       const renderings = [c.result, ...c.variants].slice(0, 3);
@@ -99,13 +106,14 @@ export function installInline(bot: Bot, svc: Svc): void {
         title: wrapForRtl(lang, r).slice(0, 200),
         description: desc,
         input_message_content: content(resultMessage(lang, c, r)),
+        ...inlineThumb(base, c.kind === "convert" ? "convert" : "calc"),
       }));
       await reply(results);
     } catch (e) {
       log("error", "calc: inline query failed", { botId: svc.botId, error: errInfo(e) });
       try {
         const lang = detectLang(q.from.language_code, svc.appConfig.defaultLang);
-        await reply([errorResult(lang, q.query, { kind: "error", key: "err_generic", params: {} })], { cache_time: 0 });
+        await reply([errorResult(lang, q.query, { kind: "error", key: "err_generic", params: {} }, svc.appConfig.publicBaseUrl)], { cache_time: 0 });
       } catch (e2) {
         log("error", "calc: inline fallback failed", { botId: svc.botId, error: errInfo(e2) });
       }
