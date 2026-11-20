@@ -10,6 +10,15 @@ database_name = "bots-db"
 database_id = "6d4f369a-0081-464f-a64d-bbfda716ed9b"
 migrations_dir = "migrations"
 
+# Mini App (miniapp/ -> `npm run build:app` -> ./public/app). The Worker runs first for /app and /app/* so it can add
+# security headers and the SPA fallback; html_handling = "none" keeps asset URLs exact (no redirects/rewrites).
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/app", "/app/*"]
+html_handling = "none"
+not_found_handling = "none"
+
 # Hourly: calls scheduled() of every enabled bot's template (the template decides what to do).
 [triggers]
 crons = ["0 * * * *"]

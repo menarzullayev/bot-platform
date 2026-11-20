@@ -29,6 +29,7 @@ export const uzLatn: Messages = {
     "Istalgan chatda <code>@tezcalc_bot 480 * 15%</code> deb yozing va natijani tanlab yuboring.\n\n" +
     "<b>Mehmon rejimi</b>\n" +
     "Istalgan chatda, hatto men qoʻshilmagan guruhda ham, <code>@tezcalc_bot</code> va ifodani yozing — men javob beraman.\n\n" +
+    "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
     "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 Tilni tanlang",
@@ -159,4 +160,28 @@ export const uzLatn: Messages = {
     "Undan shu chatda, istalgan suhbatda inlayn rejimda, mehmon rejimida yoki Mini ilovada foydalaning.\n\n" +
     "Kundalik foydalanish bepul. TezCalc Pro (/pro) bosqichma-bosqich yechim, grafiklar va qurilmalar oʻrtasida sinxronlangan tarixni qoʻshadi.\n\n" +
     "/help · /privacy · /terms",
+
+  // calc template (command handlers)
+  not_math_hint: "🤔 Bu hisob-kitobga oʻxshamaydi. <code>12*(3+4)</code> yoki <code>100 km to mi</code> kabi ifoda yuboring. Batafsil: /help.",
+  settings_history: "🕘 Hisob-kitoblar tarixini saqlash",
+  btn_on: "Yoqilgan",
+  btn_off: "Oʻchiq",
+  loan_schedule_title: "📅 Dastlabki {n} oy",
+  loan_row_legend: "oy. toʻlov = asosiy qarz + foiz → qoldiq",
+  vat_help: "<b>🧾 QQS kalkulyatori</b>\n<code>/vat 1000000</code> — summaga 12% QQS qoʻshiladi.\n<code>/vat 1120000 remove</code> — summa ichidan QQS ajratiladi.\n<code>/vat 1000000 15</code> — boshqa stavka (foizda).",
+  vat_label_net: "QQSsiz summa",
+  vat_label_vat: "QQS",
+  vat_label_gross: "QQS bilan summa",
+  widget_unavailable: "⚠️ Vidjetni faqat bot bilan shaxsiy chatda yuborish mumkin va u hozir mavjud boʻlmasligi mumkin.",
+  symbolic_help: "<b>🧠 Bosqichma-bosqich yechim (Pro)</b>\n<code>/solve x^2-5x+6=0</code> — tenglama yoki ifoda.\n<code>/derive x^3*sin(x)</code> — hosila.\n<code>/integrate x*e^x</code> — aniqmas integral.",
+  err_parse: "⚠️ Ifodani oʻqiy olmadim. Qavslar va amallarni tekshiring.",
+  err_unsupported: "⚠️ Bu turdagi masalani hozircha yecha olmayman.",
+  err_too_complex: "⚠️ Bu chat uchun juda murakkab. Mini ilovada oching.",
+  deleteme_payments_note: "Toʻlov yozuvlari va Pro muddatingiz saqlanadi: ular pulni qaytarish va hisob-kitob uchun kerak.",
+  cmd_vat: "QQS kalkulyatori",
+  cmd_solve: "Bosqichli yechim (Pro)",
+  cmd_derive: "Hosila, bosqichlab (Pro)",
+  cmd_integrate: "Integral, bosqichlab (Pro)",
+  cmd_widget: "Kalkulyator vidjeti",
+  cmd_app: "Mini ilovani ochish",
 };

@@ -2,6 +2,7 @@ import type { Bot } from "grammy";
 import type { Db } from "../db";
 import { validateEnv, type AppConfig, type Deps, type Env } from "../env";
 import type { PlatformState, RateLimitOptions } from "../ratelimit";
+import { calcTemplate } from "./calc";
 import { forcesubTemplate } from "./forcesub";
 
 export interface BotCommand {
@@ -90,6 +91,7 @@ export function listTemplateNames(): string[] {
 }
 
 registerTemplate(forcesubTemplate);
+registerTemplate(calcTemplate);
 
 const FALLBACK_CONFIG: AppConfig = {
   appEnv: "local",

@@ -32,6 +32,7 @@ export const ar: Messages = {
     `في أي محادثة اكتب ${c("@tezcalc_bot 480 * 15%")} ثم اختر النتيجة لإرسالها.\n\n` +
     "<b>وضع الضيف</b>\n" +
     `اذكر ${c("@tezcalc_bot")} متبوعًا بعملية حسابية في أي محادثة، حتى لو لم تتم إضافتي إليها، وسأرد عليك بالنتيجة.\n\n` +
+    "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
     "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 اختر لغتك",
@@ -162,4 +163,28 @@ export const ar: Messages = {
     "استخدمها في هذه المحادثة، أو في الوضع المضمّن داخل أي محادثة، أو في وضع الضيف، أو في التطبيق المصغّر.\n\n" +
     "الاستخدام اليومي مجاني. ويضيف TezCalc Pro (/pro) الحل خطوة بخطوة والرسوم البيانية وسجلًا متزامنًا بين الأجهزة.\n\n" +
     "/help · /privacy · /terms",
+
+  // calc template (command handlers)
+  not_math_hint: "🤔 لا يبدو هذا عملية حسابية. أرسل تعبيرًا مثل ⁦<code>12*(3+4)</code>⁩ أو ⁦<code>100 km to mi</code>⁩. التفاصيل: /help.",
+  settings_history: "🕘 حفظ سجل العمليات الحسابية",
+  btn_on: "مفعّل",
+  btn_off: "معطّل",
+  loan_schedule_title: "📅 أول {n} أشهر",
+  loan_row_legend: "الشهر. القسط = الأصل + الفائدة ← الرصيد",
+  vat_help: "<b>🧾 حاسبة ضريبة القيمة المضافة</b>\n⁦<code>/vat 1000000</code>⁩ — تضيف 12% ضريبة إلى المبلغ.\n⁦<code>/vat 1120000 remove</code>⁩ — تستخرج الضريبة من مبلغ شامل لها.\n⁦<code>/vat 1000000 15</code>⁩ — نسبة أخرى (بالمئة).",
+  vat_label_net: "المبلغ دون الضريبة",
+  vat_label_vat: "الضريبة",
+  vat_label_gross: "المبلغ مع الضريبة",
+  widget_unavailable: "⚠️ يمكن إرسال الودجت فقط في محادثة خاصة مع البوت، وقد لا يكون متاحًا الآن.",
+  symbolic_help: "<b>🧠 حلول خطوة بخطوة (Pro)</b>\n⁦<code>/solve x^2-5x+6=0</code>⁩ — معادلة أو تعبير.\n⁦<code>/derive x^3*sin(x)</code>⁩ — مشتقة.\n⁦<code>/integrate x*e^x</code>⁩ — تكامل غير محدد.",
+  err_parse: "⚠️ تعذّرت قراءة التعبير. تحقّق من الأقواس والعمليات.",
+  err_unsupported: "⚠️ لا أستطيع حل هذا النوع من المسائل بعد.",
+  err_too_complex: "⚠️ هذا معقّد جدًا للمحادثة. افتحه في التطبيق المصغّر.",
+  deleteme_payments_note: "يتم الاحتفاظ بسجلات الدفع وفترة Pro الخاصة بك: فهي لازمة لاسترداد المبالغ والمحاسبة.",
+  cmd_vat: "حاسبة ضريبة القيمة المضافة",
+  cmd_solve: "حل خطوة بخطوة (Pro)",
+  cmd_derive: "مشتقة خطوة بخطوة (Pro)",
+  cmd_integrate: "تكامل خطوة بخطوة (Pro)",
+  cmd_widget: "ودجت الحاسبة",
+  cmd_app: "فتح التطبيق المصغّر",
 };

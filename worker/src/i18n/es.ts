@@ -27,6 +27,7 @@ export const es: Messages = {
     "En cualquier chat escribe <code>@tezcalc_bot 480 * 15%</code> y elige el resultado para enviarlo.\n\n" +
     "<b>Modo invitado</b>\n" +
     "Menciona <code>@tezcalc_bot</code> seguido de una expresión en cualquier chat, incluso donde no me hayan añadido, y te responderé.\n\n" +
+    "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
     "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 Elige tu idioma",
@@ -157,4 +158,28 @@ export const es: Messages = {
     "Úsala en este chat, en modo inline en cualquier conversación, en modo invitado o en la Mini App.\n\n" +
     "Gratis para el uso diario. TezCalc Pro (/pro) añade soluciones paso a paso, gráficas e historial sincronizado entre dispositivos.\n\n" +
     "/help · /privacy · /terms",
+
+  // calc template (command handlers)
+  not_math_hint: "🤔 Eso no parece un cálculo. Envía una expresión como <code>12*(3+4)</code> o <code>100 km to mi</code>. Más información: /help.",
+  settings_history: "🕘 Guardar el historial de cálculos",
+  btn_on: "Activado",
+  btn_off: "Desactivado",
+  loan_schedule_title: "📅 Primeros {n} meses",
+  loan_row_legend: "mes. cuota = capital + intereses → saldo",
+  vat_help: "<b>🧾 Calculadora de IVA</b>\n<code>/vat 1000000</code> — añade el 12% de IVA al importe.\n<code>/vat 1120000 remove</code> — extrae el IVA de un importe que ya lo incluye.\n<code>/vat 1000000 15</code> — otro tipo (en porcentaje).",
+  vat_label_net: "Importe sin IVA",
+  vat_label_vat: "IVA",
+  vat_label_gross: "Importe con IVA",
+  widget_unavailable: "⚠️ El widget solo se puede enviar en un chat privado con el bot y puede no estar disponible ahora.",
+  symbolic_help: "<b>🧠 Soluciones paso a paso (Pro)</b>\n<code>/solve x^2-5x+6=0</code> — una ecuación o una expresión.\n<code>/derive x^3*sin(x)</code> — una derivada.\n<code>/integrate x*e^x</code> — una integral indefinida.",
+  err_parse: "⚠️ No pude leer la expresión. Revisa los paréntesis y los operadores.",
+  err_unsupported: "⚠️ Todavía no sé resolver este tipo de problema.",
+  err_too_complex: "⚠️ Es demasiado complejo para un chat. Ábrelo en la Mini App.",
+  deleteme_payments_note: "Los registros de pagos y tu periodo Pro se conservan: son necesarios para reembolsos y contabilidad.",
+  cmd_vat: "Calculadora de IVA",
+  cmd_solve: "Resolver paso a paso (Pro)",
+  cmd_derive: "Derivada paso a paso (Pro)",
+  cmd_integrate: "Integral paso a paso (Pro)",
+  cmd_widget: "Widget de calculadora",
+  cmd_app: "Abrir la Mini App",
 };

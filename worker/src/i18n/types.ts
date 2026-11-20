@@ -13,6 +13,12 @@ export const COMMAND_NAMES = [
   "history",
   "convert",
   "loan",
+  "vat",
+  "solve",
+  "derive",
+  "integrate",
+  "widget",
+  "app",
   "pro",
   "privacy",
   "terms",
@@ -88,6 +94,28 @@ export const MESSAGE_KEYS = [
   "bot_short_description",
   "bot_description",
   "bot_about",
+  "not_math_hint",
+  "settings_history",
+  "btn_on",
+  "btn_off",
+  "loan_schedule_title",
+  "loan_row_legend",
+  "vat_help",
+  "vat_label_net",
+  "vat_label_vat",
+  "vat_label_gross",
+  "widget_unavailable",
+  "symbolic_help",
+  "err_parse",
+  "err_unsupported",
+  "err_too_complex",
+  "deleteme_payments_note",
+  "cmd_vat",
+  "cmd_solve",
+  "cmd_derive",
+  "cmd_integrate",
+  "cmd_widget",
+  "cmd_app",
 ] as const;
 export type MessageKey = (typeof MESSAGE_KEYS)[number];
 
@@ -107,6 +135,7 @@ export const PLACEHOLDERS: Partial<Record<MessageKey, readonly string[]>> = {
   fx_stale: ["date"],
   pro_price: ["stars"],
   pro_active: ["date"],
+  loan_schedule_title: ["n"],
 };
 
 /** Keys whose value is sent as plain text (no HTML parse mode): profile texts, command list, inline strings, buttons. */
@@ -136,6 +165,15 @@ export const PLAIN_KEYS: readonly MessageKey[] = [
   "bot_short_description",
   "bot_description",
   "lang_menu_title",
+  "btn_on",
+  "btn_off",
+  "settings_history",
+  "cmd_vat",
+  "cmd_solve",
+  "cmd_derive",
+  "cmd_integrate",
+  "cmd_widget",
+  "cmd_app",
 ];
 
 /** Telegram length limits. */

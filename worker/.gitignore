@@ -7,3 +7,6 @@ node_modules/
 .env.*
 !.env.example
 *.log
+# Mini App build output (npm run build:app; built in CI/deploy)
+public/
+.vitest/

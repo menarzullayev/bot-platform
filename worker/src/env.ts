@@ -7,6 +7,8 @@ export type LogLevel = (typeof LOG_LEVELS)[number];
 
 export interface Env {
   DB: D1Database;
+  /** Static assets binding for the Mini App (wrangler.toml [assets]); absent in unit tests. */
+  ASSETS?: Fetcher;
   // secret (wrangler secret put)
   TOKEN_KEY: string;
   ADMIN_TOKEN: string;

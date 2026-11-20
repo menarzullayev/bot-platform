@@ -1,5 +1,5 @@
 import { decryptToken, encryptToken, randomSecret, timingSafeEqual } from "./crypto";
-import { countUsersPerBot, getBot, insertBot, listBots, setBotEnabled, type BotRow, type Db } from "./db";
+import { countUsersPerBot, getBot, insertBot, listBots, setBotEnabled, setBotTemplate, type BotRow, type Db } from "./db";
 import type { Env } from "./env";
 import { errInfo, log } from "./log";
 import { handleRefund } from "./pro/refund";
@@ -10,8 +10,23 @@ const json = (data: unknown, status = 200) =>
 
 const ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
 const TOKEN_RE = /^\d{6,12}:[A-Za-z0-9_-]{30,}$/;
-const BOT_PATH_RE = /^\/admin\/bots\/([A-Za-z0-9_-]{1,32})(\/webhook|\/setup|\/refund)?$/;
-const ALLOWED_UPDATES = ["message", "callback_query", "my_chat_member", "chat_member", "pre_checkout_query"];
+const BOT_PATH_RE = /^\/admin\/bots\/([A-Za-z0-9_-]{1,32})(\/webhook|\/setup|\/refund|\/sync-webhook)?$/;
+/**
+ * Explicit list (an empty list would skip chat_member and message_reaction*, and guest_message must be asked for
+ * by name once any list is given: docs/FACTS.md section 2). Names are the official Update fields of Bot API 10.4;
+ * guest_message is typed in grammY, widget_query is not (Bot API 10.4, docs/FACTS.md section 3).
+ */
+export const ALLOWED_UPDATES = [
+  "message",
+  "callback_query",
+  "my_chat_member",
+  "chat_member",
+  "pre_checkout_query",
+  "inline_query",
+  "chosen_inline_result",
+  "guest_message",
+  "widget_query",
+];
 
 interface TgResult {
   ok: boolean;
@@ -128,19 +143,40 @@ export async function handleAdmin(req: Request, env: Env, deps: PlatformDeps = {
   if (m) {
     const [, botId, sub] = m;
 
-    // Kill-switch: PATCH /admin/bots/:id {enabled}
+    // PATCH /admin/bots/:id {enabled?, template?, config?}: kill-switch and template switch (token is never touched).
     if (req.method === "PATCH" && !sub) {
-      let body: { enabled?: unknown };
+      let body: { enabled?: unknown; template?: unknown; config?: unknown };
       try {
         body = await req.json();
       } catch {
         return json({ error: "JSON kerak" }, 400);
       }
-      if (typeof body.enabled !== "boolean") return json({ error: "enabled: boolean kerak" }, 400);
-      if (!(await getBot(db, botId))) return json({ error: "bot topilmadi" }, 404);
-      await setBotEnabled(db, botId, body.enabled);
-      log("info", "admin: bot toggled", { botId, enabled: body.enabled });
-      return json({ id: botId, enabled: body.enabled });
+      const hasEnabled = body.enabled !== undefined;
+      const hasTemplate = body.template !== undefined;
+      if (!hasEnabled && !hasTemplate) return json({ error: "enabled yoki template kerak" }, 400);
+      if (hasEnabled && typeof body.enabled !== "boolean") return json({ error: "enabled: boolean kerak" }, 400);
+      const row = await getBot(db, botId);
+      if (!row) return json({ error: "bot topilmadi" }, 404);
+      const out: Record<string, unknown> = { id: botId };
+      if (hasTemplate) {
+        const tpl = typeof body.template === "string" ? getTemplate(body.template) : undefined;
+        if (!tpl) return json({ error: "noma'lum shablon" }, 400);
+        let cfg: unknown;
+        try {
+          cfg = tpl.parseConfig(body.config ?? {});
+        } catch (e) {
+          return json({ error: "config: " + (e instanceof Error ? e.message : "xato") }, 400);
+        }
+        await setBotTemplate(db, botId, tpl.name, JSON.stringify(cfg));
+        log("info", "admin: bot template switched", { botId, template: tpl.name });
+        out.template = tpl.name;
+      }
+      if (hasEnabled) {
+        await setBotEnabled(db, botId, body.enabled as boolean);
+        log("info", "admin: bot toggled", { botId, enabled: body.enabled });
+        out.enabled = body.enabled;
+      }
+      return json(out);
     }
 
     // Stars refund: POST /admin/bots/:id/refund {user_id, charge_id}
@@ -150,6 +186,28 @@ export async function handleAdmin(req: Request, env: Env, deps: PlatformDeps = {
         fetchFn,
         now: deps.now ?? (() => Math.floor(Date.now() / 1000)),
       });
+    }
+
+    // Re-applies setWebhook with the current ALLOWED_UPDATES: same url, same stored secret, pending updates kept.
+    if (req.method === "POST" && sub === "/sync-webhook") {
+      const row = await getBot(db, botId);
+      if (!row) return json({ error: "bot topilmadi" }, 404);
+      const token = await decryptToken(env.TOKEN_KEY, row.token_enc);
+      const webhookUrl = `${url.origin}/wh/${botId}`;
+      let res: TgResult;
+      try {
+        res = await tgCall(fetchFn, token, "setWebhook", {
+          url: webhookUrl,
+          secret_token: row.secret,
+          allowed_updates: ALLOWED_UPDATES,
+        });
+      } catch (e) {
+        log("error", "admin: sync-webhook failed", { botId, error: errInfo(e, token) });
+        return json({ error: "Telegram'ga ulanib bo'lmadi" }, 502);
+      }
+      if (!res.ok) return json({ error: "setWebhook muvaffaqiyatsiz" }, 502);
+      log("info", "admin: webhook synced", { botId });
+      return json({ ok: true, webhook: webhookUrl, allowed_updates: ALLOWED_UPDATES });
     }
 
     if ((req.method === "GET" && sub === "/webhook") || (req.method === "POST" && sub === "/setup")) {
@@ -196,6 +254,26 @@ export async function handleAdmin(req: Request, env: Env, deps: PlatformDeps = {
           log("warn", "admin: setup call failed", { botId, method: c.method, error: errInfo(e, token) });
         }
         results.push({ method: c.method, language: c.language, ok: good });
+      }
+      // Optional chat menu button (Mini App): the profile gives a path, the URL is built here from the public base.
+      const mb = (profile as BotProfile & { menuButton?: { text?: unknown; path?: unknown } }).menuButton;
+      if (mb && typeof mb.text === "string" && typeof mb.path === "string" && mb.path.startsWith("/")) {
+        const base = deps.appConfig?.publicBaseUrl ?? url.origin;
+        let good = false;
+        try {
+          good = (
+            await tgCall(fetchFn, token, "setChatMenuButton", {
+              menu_button: {
+                type: "web_app",
+                text: mb.text.slice(0, 64),
+                web_app: { url: `${base}${mb.path}?b=${encodeURIComponent(botId)}` },
+              },
+            })
+          ).ok === true;
+        } catch (e) {
+          log("warn", "admin: setup call failed", { botId, method: "setChatMenuButton", error: errInfo(e, token) });
+        }
+        results.push({ method: "setChatMenuButton", language: "default", ok: good });
       }
       return json({ ok: results.every((r) => r.ok), results });
     }

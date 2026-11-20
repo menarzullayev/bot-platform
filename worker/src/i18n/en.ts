@@ -28,6 +28,7 @@ export const en: Messages = {
     "In any chat type <code>@tezcalc_bot 480 * 15%</code> and pick the result to send it.\n\n" +
     "<b>Guest mode</b>\n" +
     "Mention <code>@tezcalc_bot</code> followed by an expression in any chat, even one I haven't been added to, and I'll reply with the answer.\n\n" +
+    "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
     "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 Choose your language",
@@ -158,4 +159,28 @@ export const en: Messages = {
     "Use it in this chat, inline in any conversation, in guest mode or in the Mini App.\n\n" +
     "Free for everyday use. TezCalc Pro (/pro) adds step-by-step solutions, graphs and history synced across devices.\n\n" +
     "/help · /privacy · /terms",
+
+  // calc template (command handlers)
+  not_math_hint: "🤔 That doesn't look like a calculation. Send an expression like <code>12*(3+4)</code> or <code>100 km to mi</code>. See /help.",
+  settings_history: "🕘 Save calculation history",
+  btn_on: "On",
+  btn_off: "Off",
+  loan_schedule_title: "📅 First {n} months",
+  loan_row_legend: "month. payment = principal + interest → balance",
+  vat_help: "<b>🧾 VAT calculator</b>\n<code>/vat 1000000</code> — adds 12% VAT to the amount.\n<code>/vat 1120000 remove</code> — extracts the VAT from an amount that includes it.\n<code>/vat 1000000 15</code> — another rate (in percent).",
+  vat_label_net: "Amount without VAT",
+  vat_label_vat: "VAT",
+  vat_label_gross: "Amount with VAT",
+  widget_unavailable: "⚠️ The widget can only be sent in a private chat with the bot, and it may be unavailable right now.",
+  symbolic_help: "<b>🧠 Step-by-step solutions (Pro)</b>\n<code>/solve x^2-5x+6=0</code> — an equation or an expression.\n<code>/derive x^3*sin(x)</code> — a derivative.\n<code>/integrate x*e^x</code> — an indefinite integral.",
+  err_parse: "⚠️ I couldn't read this expression. Check the brackets and operators.",
+  err_unsupported: "⚠️ I can't solve this type of problem yet.",
+  err_too_complex: "⚠️ This is too complex for a chat message. Open it in the Mini App.",
+  deleteme_payments_note: "Payment records and your Pro period are kept: they are needed for refunds and accounting.",
+  cmd_vat: "VAT calculator",
+  cmd_solve: "Solve step by step (Pro)",
+  cmd_derive: "Derivative step by step (Pro)",
+  cmd_integrate: "Integral step by step (Pro)",
+  cmd_widget: "Calculator widget",
+  cmd_app: "Open the Mini App",
 };

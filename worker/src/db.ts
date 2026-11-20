@@ -53,6 +53,10 @@ export async function setBotEnabled(db: Db, id: string, enabled: boolean): Promi
   await db.prepare("UPDATE bots SET enabled = ? WHERE id = ?").bind(enabled ? 1 : 0, id).run();
 }
 
+export async function setBotTemplate(db: Db, id: string, template: string, config: string): Promise<void> {
+  await db.prepare("UPDATE bots SET template = ?, config = ? WHERE id = ?").bind(template, config, id).run();
+}
+
 export async function countUsersPerBot(db: Db): Promise<Record<string, number>> {
   const r = await db.prepare("SELECT bot_id, COUNT(*) AS n FROM bot_users GROUP BY bot_id").all<{
     bot_id: string;

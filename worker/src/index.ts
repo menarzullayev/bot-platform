@@ -3,6 +3,7 @@ import { listEnabledBotConfigs, type Db } from "./db";
 import { validateEnv } from "./env";
 import type { Env } from "./env";
 import { errInfo, log, setLogLevel } from "./log";
+import { handleAppApi, serveApp } from "./miniapp";
 import { getTemplate, resolveAppConfig, type PlatformDeps } from "./templates";
 import { handleWebhook } from "./webhook";
 
@@ -64,6 +65,8 @@ export default {
         });
       }
     }
+    if (url.pathname === "/app" || url.pathname.startsWith("/app/")) return serveApp(req, env);
+    if (url.pathname.startsWith("/api/app/")) return handleAppApi(req, env, deps);
     if (url.pathname === "/health") return new Response("ok");
     return new Response("not found", { status: 404 });
   },

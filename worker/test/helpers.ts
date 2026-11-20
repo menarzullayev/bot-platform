@@ -75,6 +75,14 @@ export class FakeDb implements Db {
           self.bots.set(String(id), { id, token_enc, secret, bot_info, template, config, enabled, created_at });
           return {};
         }
+        if (sql.startsWith("UPDATE bots SET template")) {
+          const row = self.bots.get(String(args[2]));
+          if (row) {
+            row.template = args[0];
+            row.config = args[1];
+          }
+          return {};
+        }
         if (sql.startsWith("UPDATE bots SET enabled")) {
           const row = self.bots.get(String(args[1]));
           if (row) row.enabled = args[0];

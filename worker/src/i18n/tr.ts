@@ -27,6 +27,7 @@ export const tr: Messages = {
     "Herhangi bir sohbette <code>@tezcalc_bot 480 * 15%</code> yazın ve göndermek için sonucu seçin.\n\n" +
     "<b>Misafir modu</b>\n" +
     "Beni eklemediğiniz bir sohbette bile <code>@tezcalc_bot</code> yazıp ardından bir ifade girin, cevap veririm.\n\n" +
+    "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
     "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 Dilinizi seçin",
@@ -157,4 +158,28 @@ export const tr: Messages = {
     "Bu sohbette, herhangi bir konuşmada satır içi modda, misafir modunda veya Mini Uygulamada kullanın.\n\n" +
     "Günlük kullanım ücretsizdir. TezCalc Pro (/pro); adım adım çözüm, grafik ve cihazlar arasında senkronize geçmiş ekler.\n\n" +
     "/help · /privacy · /terms",
+
+  // calc template (command handlers)
+  not_math_hint: "🤔 Bu bir hesaplamaya benzemiyor. <code>12*(3+4)</code> veya <code>100 km to mi</code> gibi bir ifade gönderin. Ayrıntılar: /help.",
+  settings_history: "🕘 Hesaplama geçmişini kaydet",
+  btn_on: "Açık",
+  btn_off: "Kapalı",
+  loan_schedule_title: "📅 İlk {n} ay",
+  loan_row_legend: "ay. taksit = anapara + faiz → kalan",
+  vat_help: "<b>🧾 KDV hesaplayıcı</b>\n<code>/vat 1000000</code> — tutara %12 KDV ekler.\n<code>/vat 1120000 remove</code> — KDV dahil tutardan KDV'yi ayırır.\n<code>/vat 1000000 15</code> — başka oran (yüzde).",
+  vat_label_net: "KDV hariç tutar",
+  vat_label_vat: "KDV",
+  vat_label_gross: "KDV dahil tutar",
+  widget_unavailable: "⚠️ Widget yalnızca botla özel sohbette gönderilebilir ve şu anda kullanılamıyor olabilir.",
+  symbolic_help: "<b>🧠 Adım adım çözümler (Pro)</b>\n<code>/solve x^2-5x+6=0</code> — denklem veya ifade.\n<code>/derive x^3*sin(x)</code> — türev.\n<code>/integrate x*e^x</code> — belirsiz integral.",
+  err_parse: "⚠️ İfadeyi okuyamadım. Parantezleri ve işleçleri kontrol edin.",
+  err_unsupported: "⚠️ Bu tür bir problemi henüz çözemiyorum.",
+  err_too_complex: "⚠️ Bu, sohbet için fazla karmaşık. Mini Uygulamada açın.",
+  deleteme_payments_note: "Ödeme kayıtları ve Pro süreniz saklanır: iade ve muhasebe için gereklidir.",
+  cmd_vat: "KDV hesaplayıcı",
+  cmd_solve: "Adım adım çözüm (Pro)",
+  cmd_derive: "Adım adım türev (Pro)",
+  cmd_integrate: "Adım adım integral (Pro)",
+  cmd_widget: "Hesap makinesi widget'ı",
+  cmd_app: "Mini Uygulamayı aç",
 };
