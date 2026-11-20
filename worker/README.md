@@ -49,3 +49,10 @@ curl -X POST https://<worker>.workers.dev/admin/bots \
 
 ## Keyingi qadamlar
 Qo'shimcha shablonlar (calc, konkurs, avto post), analitika.
+
+## Production status (2026-11-20)
+- Worker: https://bot-platform.tezbot-lab.workers.dev, D1 `bots-db`, migrations 0001-0002 applied.
+- `tezcalc_bot` runs the `calc` template: chat, inline, guest mode, 7 languages, units/currency/finance, Pro (Stars) module, Mini App at `/app/?b=tezcalc`.
+- Ops: `POST /admin/run-scheduled` (hourly job, FX rates), `POST /admin/bots/:id/sync-webhook`, `POST /admin/bots/:id/setup`, `PATCH /admin/bots/:id {enabled, template, config}`.
+- Known external blocker: Telegram currently answers `INPUT_MEDIA_WIDGET_NOT_ALLOWED` to `sendWidget` for this bot (even a minimal widget), so `/widget` shows a friendly "unavailable" message. Code and tests are ready; re-test later.
+- Not covered by automated tests: a real Stars payment, Mini App inside the Telegram client.

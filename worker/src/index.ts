@@ -1,4 +1,5 @@
 import { handleAdmin } from "./admin";
+import { timingSafeEqual } from "./crypto";
 import { listEnabledBotConfigs, type Db } from "./db";
 import { validateEnv } from "./env";
 import type { Env } from "./env";
@@ -54,6 +55,18 @@ export default {
     const url = new URL(req.url);
     const m = url.pathname.match(/^\/wh\/([A-Za-z0-9_-]{1,32})$/);
     if (req.method === "POST" && m) return handleWebhook(req, env, m[1], deps);
+    if (req.method === "POST" && url.pathname === "/admin/run-scheduled") {
+      // Manual trigger of the hourly job (e.g. first FX rates fill); same Bearer auth as the admin API.
+      const auth = req.headers.get("authorization") ?? "";
+      if (!auth.startsWith("Bearer ") || !timingSafeEqual(auth.slice(7), env.ADMIN_TOKEN)) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), {
+          status: 401,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      const r = await runScheduled(env, { appConfig: check.config });
+      return new Response(JSON.stringify(r), { headers: { "content-type": "application/json" } });
+    }
     if (url.pathname.startsWith("/admin/")) {
       try {
         return await handleAdmin(req, env, deps);
