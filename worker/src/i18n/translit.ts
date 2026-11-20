@@ -20,6 +20,7 @@ const PROTECTED = new RegExp(
     "\\d[\\d\\s.,]*\\s?[A-Za-z]{1,6}\\s+(?:to|in)\\s+[A-Za-z]{1,6}\\b", // calculator input examples in plain text: 100 km to mi
     "\\b[A-Z]{3}\\b", // currency / ISO codes: USD, UZS, EUR (QQS is Uzbek, see ACRONYMS)
     "TezCalc", // brand stays Latin
+    "\\bPro\\b|\\bStars?[a-z]*|\\bTelegram[a-z]*|\\bMini App\\b", // product names stay Latin (decision 2026-11-20)
   ].join("|"),
   "g",
 );

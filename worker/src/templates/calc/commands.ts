@@ -429,7 +429,13 @@ export function installCommands(bot: Bot, svc: Svc): void {
       await raw.sendWidget(widgetSendParams(u.lang, ctx.chat.id) as unknown as Record<string, unknown>);
     } catch (e) {
       log("warn", "calc: sendWidget failed", { botId, error: errInfo(e) });
-      await reply(ctx, t(u.lang, "widget_unavailable"));
+      // Telegram currently whitelists widget senders; the Mini App offers the same calculator.
+      const appUrl = miniAppUrl(svc);
+      await reply(
+        ctx,
+        t(u.lang, "widget_unavailable"),
+        appUrl ? { reply_markup: new InlineKeyboard().webApp(t(u.lang, "mini_open"), appUrl) } : undefined,
+      );
     }
   });
 

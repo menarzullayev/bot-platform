@@ -39,7 +39,7 @@ const WORDS: [string, string][] = [
   ["yaʼni", "яъни"],
   ["SHAHAR", "ШАҲАР"],
   ["Chorshanba", "Чоршанба"],
-  ["Telegram", "Телеграм"],
+  ["Telegram", "Telegram"],
   ["YOʻL", "ЙЎЛ"],
   ["Yoz", "Ёз"],
   ["mashhur", "машҳур"],
@@ -49,7 +49,7 @@ const WORDS: [string, string][] = [
   ["g'oya", "ғоя"],
   ["koʻproq", "кўпроқ"],
   ["Eng yaxshi", "Энг яхши"],
-  ["Pro obuna", "Про обуна"],
+  ["Pro obuna", "Pro обуна"],
   ["natija", "натижа"],
   ["Qoʻshish", "Қўшиш"],
   ["funksiya", "функция"],
@@ -104,6 +104,13 @@ describe("latinToCyrillic: protected segments", () => {
   it("is idempotent on already converted text", () => {
     const once = latinToCyrillic("Oʻzbek tili <b>muhim</b> {name}");
     expect(latinToCyrillic(once)).toBe(once);
+  });
+
+  it("keeps product names Latin (Pro, Stars, Telegram, Mini App) incl. suffixes", () => {
+    expect(latinToCyrillic("Telegram Stars bilan")).toBe("Telegram Stars билан");
+    expect(latinToCyrillic("Mening Starslarim")).toBe("Менинг Starslarim");
+    expect(latinToCyrillic("Mini App ochish")).toBe("Mini App очиш");
+    expect(latinToCyrillic("Programma")).toBe("Программа");
   });
 
   it("is a pure function (same output on repeated calls)", () => {

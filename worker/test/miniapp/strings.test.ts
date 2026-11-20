@@ -62,7 +62,7 @@ describe("Mini App strings: seven languages", () => {
 
   it("uz-cyrl is derived from uz-latn (no stray Latin words)", () => {
     for (const k of MS_KEYS) {
-      const stripped = MS["uz-cyrl"][k].replace(/\{[a-z_]+\}/gi, "").replace(/\b[A-Z]{2,4}\b/g, "").replace(/\bPro\b|\bf\(x\)|\bx\b|\bsin\b|\bTezCalc\b/g, "");
+      const stripped = MS["uz-cyrl"][k].replace(/\{[a-z_]+\}/gi, "").replace(/\b[A-Z]{2,4}\b/g, "").replace(/\bPro\b|\bStars?[a-z]*|\bTelegram[a-z]*|\bMini App\b|\bf\(x\)|\bx\b|\bsin\b|\bTezCalc\b/g, "");
       expect(stripped, `uz-cyrl.${k}`).not.toMatch(/[a-z]{3,}/i);
     }
   });
