@@ -96,7 +96,7 @@ export const es: Messages = {
 
   paysupport:
     "<b>💬 Soporte de pagos</b>\n\n" +
-    "¿Tienes un problema con un pago con Estrellas o quieres un reembolso? Responde a este mensaje y describe el problema. " +
+    "¿Tienes un problema con un pago con Estrellas o quieres un reembolso? Escríbenos al contacto de abajo y describe el problema. " +
     "Indica la fecha del pago y la cantidad de Estrellas.\n\n" +
     "Cada solicitud se revisa de forma individual. Las Estrellas reembolsadas vuelven a tu saldo de Telegram. " +
     "Para evitar cargos futuros, cancela la suscripción como se explica en /pro.",

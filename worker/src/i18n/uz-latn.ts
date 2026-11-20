@@ -98,7 +98,7 @@ export const uzLatn: Messages = {
 
   paysupport:
     "<b>💬 Toʻlov boʻyicha yordam</b>\n\n" +
-    "Stars toʻlovida muammo bormi yoki pulni qaytarmoqchimisiz? Shu xabarga javob yozib, muammoni bayon qiling. " +
+    "Stars toʻlovida muammo bormi yoki pulni qaytarmoqchimisiz? Quyidagi aloqa orqali yozib, muammoni bayon qiling. " +
     "Toʻlov sanasi va Stars miqdorini ham koʻrsating.\n\n" +
     "Har bir murojaat alohida koʻrib chiqiladi. Qaytarilgan Stars Telegram balansingizga qaytadi. " +
     "Keyingi yechib olishlarni toʻxtatish uchun /pro dagi koʻrsatma boʻyicha obunani bekor qiling.",

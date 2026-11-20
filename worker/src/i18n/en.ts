@@ -97,7 +97,7 @@ export const en: Messages = {
 
   paysupport:
     "<b>💬 Payment support</b>\n\n" +
-    "Having a problem with a Stars payment or want a refund? Reply to this message and describe the issue. " +
+    "Having a problem with a Stars payment or want a refund? Write to the contact below and describe the issue. " +
     "Please include the payment date and the number of Stars.\n\n" +
     "Each request is reviewed individually. Refunded Stars return to your Telegram balance. " +
     "To stop future charges, cancel the subscription as described in /pro.",

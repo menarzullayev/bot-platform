@@ -96,7 +96,7 @@ export const tr: Messages = {
 
   paysupport:
     "<b>💬 Ödeme desteği</b>\n\n" +
-    "Yıldız ödemenizde bir sorun mu var ya da iade mi istiyorsunuz? Bu mesaja yanıt verip sorunu anlatın. " +
+    "Yıldız ödemenizde bir sorun mu var ya da iade mi istiyorsunuz? Aşağıdaki iletişim üzerinden yazıp sorunu anlatın. " +
     "Lütfen ödeme tarihini ve Yıldız miktarını belirtin.\n\n" +
     "Her talep ayrı ayrı incelenir. İade edilen Yıldızlar Telegram bakiyenize geri döner. " +
     "Sonraki tahsilatları durdurmak için aboneliği /pro içinde anlatıldığı gibi iptal edin.",
