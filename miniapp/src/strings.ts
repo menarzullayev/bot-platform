@@ -239,6 +239,7 @@ const ROWS = {
   lite_auto: ["Avto", "Авто", "Auto", "Otomatik", "تلقائي", "Auto"],
   lite_on: ["Yoqilgan", "Вкл.", "On", "Açık", "تشغيل", "Sí"],
   lite_off: ["Oʻchiq", "Выкл.", "Off", "Kapalı", "إيقاف", "No"],
+  set_appearance: ["Koʻrinish", "Внешний вид", "Appearance", "Görünüm", "المظهر", "Apariencia"],
   set_fs: ["Matn oʻlchami", "Размер текста", "Text size", "Yazı boyutu", "حجم النص", "Tamaño del texto"],
 } as const satisfies Record<string, Row>;
 

@@ -13,10 +13,10 @@ export { DEFAULT_STYLE, FALLBACK_STYLE, STYLE_IDS };
 export type StyleLoader = () => Promise<{ default: StylePack }>;
 
 const LOADERS: Record<StyleId, StyleLoader | null> = {
-  tactile: null,
-  glass: null,
+  tactile: () => import("./tactile/index"),
+  glass: () => import("./glass/index"),
   fintech: () => import("./fintech/index"),
-  techno: null,
+  techno: () => import("./techno/index"),
 };
 
 const cache = new Map<StyleId, StylePack>();

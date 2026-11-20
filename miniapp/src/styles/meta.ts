@@ -18,7 +18,7 @@ export const STYLE_META: Record<StyleId, StyleMeta> = {
   glass: {
     id: "glass",
     nameKey: "style_glass",
-    swatch: { light: sw("#e6e9ff", BRAND.light, "#ffffff"), dark: sw("#0d0b24", BRAND.dark, "#17143a") },
+    swatch: { light: sw("#f7e4de", BRAND.light, "#ffffff"), dark: sw("#241230", BRAND.dark, "#2f1a3d") },
   },
   fintech: {
     id: "fintech",

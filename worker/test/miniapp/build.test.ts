@@ -125,14 +125,15 @@ describe("Mini App production bundle", () => {
   it("keeps the style kit out of the entry chunk: it is a lazy import (only the chosen style is loaded)", () => {
     const main = read(result.entryJs);
     const kitFiles = jsFiles().filter((j) => read(j).includes("style-card"));
-    expect(kitFiles.length).toBe(1);
-    expect(kitFiles[0]).not.toBe(result.entryJs);
+    // one kit chunk per shipped style pack (fintech, tactile, glass, techno)
+    expect(kitFiles.length).toBeGreaterThanOrEqual(1);
+    expect(kitFiles).not.toContain(result.entryJs);
     expect(main).not.toContain("style-card");
     // not statically imported by the entry, but reachable through import()
     const staticImports = [...main.matchAll(/(?:from|import)\s*"(\.\/chunk-[A-Z0-9]{8}\.js)"/g)].map((m) => m[1]);
-    expect(staticImports).not.toContain("./" + kitFiles[0]);
+    for (const k of kitFiles) expect(staticImports).not.toContain("./" + k);
     const dynamic = jsFiles().flatMap((j) => [...read(j).matchAll(/import\("\.\/(chunk-[A-Z0-9]{8}\.js)"\)/g)].map((m) => m[1]));
-    expect(dynamic).toContain(kitFiles[0]);
+    for (const k of kitFiles) expect(dynamic).toContain(k);
     // the entry stays small: it carries the core and registry, not the packs
     expect(result.files.find((x) => x.name === result.entryJs)!.gzip).toBeLessThan(20 * 1024);
   });

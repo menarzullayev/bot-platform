@@ -182,13 +182,54 @@ for (const [name, entry] of [["fintech", "styles/fintech/index.ts"], ["template"
       expect(q(page.el, ".fin-out")).toBeTruthy();
     });
 
-    it("settings: style picker with unavailable styles disabled, axes apply to state, every control is named", async () => {
+    const openAppearance = async (page: HTMLElement): Promise<HTMLElement> => {
+      q(page, ".set-row.appearance [data-ui=\"button\"]").click();
+      await flush();
+      return q(document, '[data-ui="sheet"]');
+    };
+
+    it("settings main screen: only the everyday controls, no page-height controls (style and axes live in the sheet)", async () => {
+      const page = env.mods.settings.createSettingsPage(env.ctx, () => undefined);
+      document.body.append(page.el);
+      const card = q(page.el, '[data-ui="card"]');
+      // language, angle+decimals pair, theme, history, plan, appearance
+      expect(card.children.length).toBe(6);
+      expect(qa(page.el, '[data-ui="segmented"]').length).toBe(2); // angle, theme
+      expect(qa(page.el, '[data-ui="style-picker"]').length).toBe(0);
+      expect(qa(page.el, '[data-ui="slider"]').length).toBe(1);
+      expect(qa(page.el, '[data-ui="toggle"]').length).toBe(1);
+      expect(q(page.el, ".set-pair").children.length).toBe(2);
+      expect(q(page.el, ".set-row.appearance [data-ui=\"button\"]")).toBeTruthy();
+      expect(qa(document, '[data-ui="sheet"]').length).toBe(0);
+    });
+
+    it("settings: the appearance sheet opens, shows the style picker and four axes, and closes", async () => {
+      const page = env.mods.settings.createSettingsPage(env.ctx, () => undefined);
+      document.body.append(page.el);
+      const sheet = await openAppearance(page.el);
+      expect(sheet).toBeTruthy();
+      expect(qa(sheet, "[role=dialog]")[0]?.getAttribute("aria-label") ?? sheet.getAttribute("aria-label")).toBeTruthy();
+      expect(qa(sheet, '[data-ui="style-picker"]').length).toBe(1);
+      expect(qa(sheet, '[data-ui="segmented"]').length).toBe(4); // contrast, density, lite, font size
+      expect(sheet.dataset.open).toBe("1");
+      q(sheet, '[data-part="panel"] [data-ui="icon-button"]').click(); // close
+      expect(sheet.dataset.open).toBeUndefined();
+      await new Promise((r) => setTimeout(r, 260));
+      expect(qa(document, '[data-ui="sheet"]').length).toBe(0);
+      // Escape closes too
+      const again = await openAppearance(page.el);
+      again.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      expect(again.dataset.open).toBeUndefined();
+    });
+
+    it("settings: style picker with unavailable styles disabled; a style pick and the axes apply at once and persist", async () => {
       env.reg.setStyleLoader("tactile", null);
       env.reg.setStyleLoader("glass", null);
       env.reg.setStyleLoader("techno", null);
       const page = env.mods.settings.createSettingsPage(env.ctx, () => undefined);
       document.body.append(page.el);
-      const cards = qa(page.el, '[data-ui="style-picker"] [data-style-id]');
+      const sheet = await openAppearance(page.el);
+      const cards = qa(sheet, '[data-ui="style-picker"] [data-style-id]');
       expect(cards.map((c) => c.dataset.styleId)).toEqual(["tactile", "glass", "fintech", "techno"]);
       expect(cards.map((c) => c.getAttribute("aria-disabled"))).toEqual(["true", "true", null, "true"]);
       // the preference is tactile (default) which is not available: the shown selection is the fallback
@@ -199,16 +240,13 @@ for (const [name, entry] of [["fintech", "styles/fintech/index.ts"], ["template"
       expect(env.state.style).toBe("tactile"); // disabled: nothing changed
       cards[2].click();
       await flush();
-      expect(env.state.style).toBe("fintech");
-      // axes
-      // labels are translated, so the groups are found by their order: angle, theme, contrast, density, lite, font size
-      const groups = qa(page.el, '[data-ui="segmented"]');
-      const labels = groups.map((g) => g.getAttribute("aria-label"));
-      expect(labels.length).toBeGreaterThanOrEqual(6); // angle, theme, contrast, density, lite, font size
-      const contrast = qa(groups[2], '[role="radio"]');
-      const density = qa(groups[3], '[role="radio"]');
-      const lite = qa(groups[4], '[role="radio"]');
-      const fs = qa(groups[5], '[role="radio"]');
+      expect(env.state.style).toBe("fintech"); // applied immediately, no extra confirm
+      // axes: contrast, density, lite, font size
+      const groups = qa(sheet, '[data-ui="segmented"]');
+      const contrast = qa(groups[0], '[role="radio"]');
+      const density = qa(groups[1], '[role="radio"]');
+      const lite = qa(groups[2], '[role="radio"]');
+      const fs = qa(groups[3], '[role="radio"]');
       expect(fs.map((b) => b.textContent)).toEqual(["A", "A+", "A++"]);
       contrast[1].click();
       density[1].click();
@@ -218,13 +256,32 @@ for (const [name, entry] of [["fintech", "styles/fintech/index.ts"], ["template"
       expect([env.state.contrast, env.state.density, env.state.lite, env.state.fs]).toEqual(["high", "compact", "on", "xl"]);
       const stored = JSON.parse(localStorage.getItem("tc:prefs") as string);
       expect([stored.contrast, stored.density, stored.lite, stored.fs, stored.style]).toEqual(["high", "compact", "on", "xl", "fintech"]);
+      // the angle segmented on the main screen still saves
+      qa(qa(page.el, '[data-ui="segmented"]')[0], '[role="radio"]')[1].click();
+      await flush();
+      expect(env.state.angle).toBe("rad");
       // the Pro plan row shows the upgrade button for a free user
       expect(qa(page.el, '[data-ui="pro-badge"]').length).toBe(1);
-      // every interactive element has a name
-      for (const el of qa(page.el, "button, input, select")) {
+      // every interactive element (page and sheet) has a name
+      for (const el of [...qa(page.el, "button, input, select"), ...qa(sheet, "button, input, select")]) {
         const named = el.getAttribute("aria-label") || el.textContent?.trim() || el.closest("label")?.textContent?.trim();
         expect(named, el.outerHTML.slice(0, 80)).toBeTruthy();
       }
+    });
+
+    it("settings: re-rendering after a style switch reopens the appearance sheet that the switch destroyed", async () => {
+      const page = env.mods.settings.createSettingsPage(env.ctx, () => undefined);
+      document.body.append(page.el);
+      const sheet = await openAppearance(page.el);
+      qa(sheet, "[data-style-id]").find((c) => c.dataset.styleId === "fintech")?.click();
+      await flush();
+      expect(qa(document, '[data-ui="sheet"]').length).toBe(1);
+      sheet.remove(); // what main.ts's style change does to the old sheet
+      page.render();
+      expect(qa(document, '[data-ui="sheet"]').length).toBe(1);
+      expect(qa(document, '[data-ui="style-picker"]').length).toBe(1);
+      page.render(); // only once
+      expect(qa(document, '[data-ui="sheet"]').length).toBe(1);
     });
 
     it("solve (Pro): a free user sees the locked overlay, a Pro user gets derivative result and steps", async () => {

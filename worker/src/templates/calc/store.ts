@@ -3,6 +3,7 @@
 
 import type { AngleMode } from "../../calc";
 import type { Db } from "../../db";
+import { peekDegradation } from "../../degrade";
 import { isLang, type Lang } from "../../i18n";
 import { PRO_LIMITS } from "../../pro";
 import { STYLE_IDS, pickEnum, type StyleId } from "./style";
@@ -95,6 +96,8 @@ const PRUNE_EVERY = 25;
 let inserts = 0;
 
 export async function addHistory(db: Db, botId: string, userId: number, expr: string, result: string, ts: number): Promise<void> {
+  // DEC-013 level 2: history is not written to D1 any more (the calculation itself still works).
+  if (peekDegradation(db, ts) >= 2) return;
   await db
     .prepare("INSERT INTO history (bot_id, user_id, expr, result, ts) VALUES (?, ?, ?, ?, ?)")
     .bind(botId, userId, expr.slice(0, 500), result.slice(0, 200), ts)

@@ -5,6 +5,8 @@ import { fetchRates, type FetchFn } from "../../fx/fetch";
 import { isStale, saveRates } from "../../fx/store";
 import { commandsFor, LANGS, profileFor, t, telegramLanguageCode } from "../../i18n";
 import { errInfo, log } from "../../log";
+import { purgeExpiredCards } from "../../miniapp/cards";
+import { activeUsersSince, dayOf, dayStartSec, setMetric } from "../../metrics";
 import type { BotProfile, ScheduledDeps, Template, TemplateCtx } from "../index";
 import { installCommands } from "./commands";
 import { parseCalcConfig, type CalcConfig } from "./config";
@@ -94,6 +96,25 @@ export async function refreshRates(deps: ScheduledDeps<CalcConfig>): Promise<"fr
   return "updated";
 }
 
+/**
+ * Hourly housekeeping (P5): purge share cards older than 72 h and (re)write today's `au` (active users) counter
+ * as an absolute value, so the hourly repeat is idempotent. Each step is isolated; never throws.
+ */
+export async function housekeeping(deps: ScheduledDeps<CalcConfig>): Promise<void> {
+  const now = deps.now();
+  try {
+    await purgeExpiredCards(deps.db, now);
+  } catch (e) {
+    log("warn", "calc: card purge failed", { botId: deps.botId, error: errInfo(e) });
+  }
+  try {
+    const n = await activeUsersSince(deps.db, deps.botId, dayStartSec(now * 1000));
+    await setMetric(deps.db, dayOf(now * 1000), deps.botId, "au", n);
+  } catch (e) {
+    log("warn", "calc: active-user counter failed", { botId: deps.botId, error: errInfo(e) });
+  }
+}
+
 export const calcTemplate: Template<CalcConfig> = {
   name: "calc",
   parseConfig: parseCalcConfig,
@@ -101,6 +122,7 @@ export const calcTemplate: Template<CalcConfig> = {
   profile: buildProfile,
   async scheduled(_env, deps) {
     await refreshRates(deps);
+    await housekeeping(deps);
   },
   // Rate limiting is applied by the handlers (messages, inline, guest, widget) so payments are never throttled.
   rateLimit: false,

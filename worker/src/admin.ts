@@ -1,8 +1,10 @@
 import { globalFetch } from "./http";
 import { decryptToken, encryptToken, randomSecret, timingSafeEqual } from "./crypto";
 import { countUsersPerBot, getBot, insertBot, listBots, setBotEnabled, setBotTemplate, type BotRow, type Db } from "./db";
+import { getDegradation } from "./degrade";
 import type { Env } from "./env";
 import { errInfo, log } from "./log";
+import { dayOf, flushMetrics, readRange, type MetricRow } from "./metrics";
 import { handleRefund } from "./pro/refund";
 import { getTemplate, type BotProfile, type PlatformDeps } from "./templates";
 
@@ -63,6 +65,25 @@ function profileCalls(p: BotProfile): { method: string; language: string; payloa
   return calls;
 }
 
+export const METRICS_DEFAULT_DAYS = 7;
+export const METRICS_MAX_DAYS = 90;
+
+type Counters = Record<string, number>;
+
+function addTo(c: Counters, key: string, n: number): void {
+  c[key] = (c[key] ?? 0) + n;
+}
+
+function foldRows(rows: MetricRow[]): { totals: Counters; bots: Record<string, Counters> } {
+  const totals: Counters = {};
+  const bots: Record<string, Counters> = {};
+  for (const r of rows) {
+    addTo(totals, r.key, Number(r.n));
+    addTo((bots[r.bot_id] ??= {}), r.key, Number(r.n));
+  }
+  return { totals, bots };
+}
+
 export async function handleAdmin(req: Request, env: Env, deps: PlatformDeps = {}): Promise<Response> {
   const auth = req.headers.get("authorization") ?? "";
   if (!env.ADMIN_TOKEN || !timingSafeEqual(auth, `Bearer ${env.ADMIN_TOKEN}`)) {
@@ -78,10 +99,53 @@ export async function handleAdmin(req: Request, env: Env, deps: PlatformDeps = {
 
   if (req.method === "GET" && url.pathname === "/admin/stats") {
     const [bots, users] = await Promise.all([listBots(db), countUsersPerBot(db)]);
+    // Today's anonymous counters (DEC-015). A metrics failure must not break the stats call: `today` is then omitted.
+    let today: Record<string, unknown> | undefined;
+    try {
+      const nowMs = (deps.now ? deps.now() * 1000 : Date.now());
+      await flushMetrics(db, nowMs);
+      const day = dayOf(nowMs);
+      const { totals, bots: perBot } = foldRows(await readRange(db, day, day));
+      today = { day, degraded: await getDegradation(db, Math.floor(nowMs / 1000), deps.appConfig), counters: totals, bots: perBot };
+    } catch (e) {
+      log("warn", "admin: today's counters unavailable", { error: errInfo(e) });
+    }
     return json({
       bots: bots.length,
       enabled: bots.filter((b) => b.enabled === 1).length,
       users: Object.fromEntries(bots.map((b) => [b.id, users[b.id] ?? 0])),
+      ...(today ? { today } : {}),
+    });
+  }
+
+  // GET /admin/metrics?days=7&bot=<id>: one entry per UTC day (zero-filled), counters summed over bots unless bot= is given.
+  if (req.method === "GET" && url.pathname === "/admin/metrics") {
+    const rawDays = url.searchParams.get("days");
+    const days = rawDays === null ? METRICS_DEFAULT_DAYS : /^\d{1,3}$/.test(rawDays) ? Number(rawDays) : 0;
+    if (days < 1 || days > METRICS_MAX_DAYS) return json({ error: `days: 1..${METRICS_MAX_DAYS} butun son` }, 400);
+    const bot = url.searchParams.get("bot");
+    if (bot !== null && !ID_RE.test(bot)) return json({ error: "bot: noto'g'ri id" }, 400);
+    const nowMs = deps.now ? deps.now() * 1000 : Date.now();
+    await flushMetrics(db, nowMs);
+    const dayList: string[] = [];
+    for (let i = days - 1; i >= 0; i--) dayList.push(dayOf(nowMs - i * 86_400_000));
+    let rows: MetricRow[];
+    try {
+      rows = await readRange(db, dayList[0], dayList[dayList.length - 1], bot ?? undefined);
+    } catch (e) {
+      log("error", "admin: metrics read failed", { error: errInfo(e) });
+      return json({ error: "metrika o'qilmadi" }, 500);
+    }
+    const byDay = new Map<string, Counters>(dayList.map((d) => [d, {}]));
+    for (const r of rows) {
+      const c = byDay.get(r.day);
+      if (c) addTo(c, r.key, Number(r.n));
+    }
+    return json({
+      from: dayList[0],
+      to: dayList[dayList.length - 1],
+      bot,
+      days: dayList.map((day) => ({ day, counters: byDay.get(day) ?? {} })),
     });
   }
 

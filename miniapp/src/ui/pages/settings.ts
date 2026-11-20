@@ -1,10 +1,11 @@
-// Settings page: language (7), style picker and adaptation axes (DEC-007), angle unit, decimals, history sync,
-// theme and the Pro plan. Style/axis changes apply at once (main.ts listens to the state change).
+// Settings page (never scrolls, down to 264x470): language, angle unit, decimals, theme, history sync and the Pro plan
+// on the main screen; style picker and the adaptation axes (DEC-007) in the "Appearance" bottom sheet.
+// Style/axis changes apply at once (main.ts listens to the state change).
 
 import { LANG_LABELS, LANGS } from "../../../../worker/src/i18n/types";
 import { effectiveStyle, listStyles } from "../../styles/registry";
 import { clear, h } from "../dom";
-import { buyPro, toast } from "../overlays";
+import { buyPro, openSheet, toast } from "../overlays";
 import { clearHistoryAll, refreshMe, saveSettings } from "../session";
 import { persistPrefs, state, t, update, type ThemePref } from "../state";
 import type { Page, PageCtx } from "./types";
@@ -17,6 +18,37 @@ export function createSettingsPage(ctx: PageCtx, onTheme: () => void): Page {
     toast(ok ? t("set_saved") : t("set_save_failed"), ok ? "ok" : "error");
   }
 
+  // A style switch swaps the kit and destroys open sheets (stale markup); the page is re-rendered right after, and
+  // then the appearance sheet is opened again so the user keeps tuning the look.
+  let reopenUntil = 0;
+
+  function openAppearance(): void {
+    openSheet(t("set_appearance"), (body) => {
+      const kit = ctx.kit;
+      const seg = <T extends string>(label: string, options: ReadonlyArray<readonly [T, string]>, value: T, onPick: (v: T) => void): HTMLElement =>
+        kit.Row({ label }, kit.Segmented({ options, value, label, onPick }).el).el;
+      body.append(
+        kit.Row(
+          { label: t("set_style"), class: "style-row" },
+          kit.StylePicker({
+            label: t("set_style"),
+            soonLabel: t("style_soon"),
+            value: effectiveStyle(state.style),
+            options: listStyles().map(({ meta, available }) => ({ id: meta.id, name: t(meta.nameKey), swatch: meta.swatch, available })),
+            onPick: (id) => {
+              reopenUntil = Date.now() + 5000;
+              void save({ style: id });
+            },
+          }).el,
+        ).el,
+        seg(t("set_contrast"), [["normal", t("contrast_normal")], ["high", t("contrast_high")]] as const, state.contrast, (v) => void save({ contrast: v })),
+        seg(t("set_density"), [["comfortable", t("density_comfortable")], ["compact", t("density_compact")]] as const, state.density, (v) => void save({ density: v })),
+        seg(t("set_lite"), [["auto", t("lite_auto")], ["on", t("lite_on")], ["off", t("lite_off")]] as const, state.lite, (v) => void save({ lite: v })),
+        seg(t("set_fs"), [["m", "A"], ["l", "A+"], ["xl", "A++"]] as const, state.fs, (v) => void save({ fs: v })),
+      );
+    });
+  }
+
   function render(): void {
     clear(el);
     const kit = ctx.kit;
@@ -27,7 +59,6 @@ export function createSettingsPage(ctx: PageCtx, onTheme: () => void): Page {
         options: LANGS.map((l) => [l, LANG_LABELS[l]] as const),
         value: state.lang,
         label: t("set_language"),
-        roomy: true,
         langs: LANGS.map((l) => (l === "uz-latn" ? "uz-Latn" : l === "uz-cyrl" ? "uz-Cyrl" : l)),
         onPick: (l) => void save({ lang: l }).then(() => render()),
       }).el,
@@ -72,34 +103,30 @@ export function createSettingsPage(ctx: PageCtx, onTheme: () => void): Page {
       ),
     );
 
-    const seg = <T extends string>(label: string, options: ReadonlyArray<readonly [T, string]>, value: T, onPick: (v: T) => void): HTMLElement =>
-      kit.Row({ label }, kit.Segmented({ options, value, label, onPick }).el).el;
+    const seg = <T extends string>(label: string, options: ReadonlyArray<readonly [T, string]>, value: T, onPick: (v: T) => void, cls?: string): HTMLElement =>
+      kit.Row({ label, class: cls }, kit.Segmented({ options, value, label, onPick }).el).el;
+
+    const styleName = ((): string => {
+      const cur = listStyles().find(({ meta }) => meta.id === effectiveStyle(state.style));
+      return cur ? t(cur.meta.nameKey) : "";
+    })();
 
     el.append(
       kit.Card(
         { class: "set-card" },
         langs.el,
-        seg(t("set_angle"), [["deg", t("set_deg")], ["rad", t("set_rad")]] as const, state.angle, (v) => void save({ angle: v })),
+        // the two most used compact controls share one line
+        h(
+          "div",
+          { class: "grid2 set-pair" },
+          seg(t("set_angle"), [["deg", t("set_deg")], ["rad", t("set_rad")]] as const, state.angle, (v) => void save({ angle: v }), "angle"),
+          kit.Row({ class: "digits" }, digits.el).el,
+        ),
         seg(t("set_theme"), themeOpts, state.theme, (v) => {
           update({ theme: v });
           persistPrefs();
           onTheme();
         }),
-        kit.Row(
-          { label: t("set_style") },
-          kit.StylePicker({
-            label: t("set_style"),
-            soonLabel: t("style_soon"),
-            value: effectiveStyle(state.style),
-            options: listStyles().map(({ meta, available }) => ({ id: meta.id, name: t(meta.nameKey), swatch: meta.swatch, available })),
-            onPick: (id) => void save({ style: id }),
-          }).el,
-        ).el,
-        seg(t("set_contrast"), [["normal", t("contrast_normal")], ["high", t("contrast_high")]] as const, state.contrast, (v) => void save({ contrast: v })),
-        seg(t("set_density"), [["comfortable", t("density_comfortable")], ["compact", t("density_compact")]] as const, state.density, (v) => void save({ density: v })),
-        seg(t("set_lite"), [["auto", t("lite_auto")], ["on", t("lite_on")], ["off", t("lite_off")]] as const, state.lite, (v) => void save({ lite: v })),
-        seg(t("set_fs"), [["m", "A"], ["l", "A+"], ["xl", "A++"]] as const, state.fs, (v) => void save({ fs: v })),
-        kit.Row({ class: "digits" }, digits.el).el,
         kit.Row(
           { class: "hist" },
           sync.el,
@@ -118,9 +145,25 @@ export function createSettingsPage(ctx: PageCtx, onTheme: () => void): Page {
           }).el,
         ).el,
         plan.el,
+        // style picker and the four adaptation axes live in a bottom sheet so this page never scrolls
+        kit.Row(
+          { class: "appearance" },
+          kit.Button({
+            variant: "secondary",
+            block: true,
+            icon: "settings",
+            label: styleName ? `${t("set_appearance")} · ${styleName}` : t("set_appearance"),
+            ariaLabel: t("set_appearance"),
+            onClick: () => openAppearance(),
+          }).el,
+        ).el,
       ).el,
     );
     if (state.mode === "demo") el.appendChild(kit.Text({ kind: "hint", align: "center", text: t("set_demo_note") }).el);
+    if (reopenUntil > Date.now()) {
+      reopenUntil = 0;
+      openAppearance();
+    }
   }
 
   render();

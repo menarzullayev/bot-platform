@@ -3,18 +3,18 @@
    Sizes are written calc(Npx * var(--fs)) so the font-size axis works; effects multiply by var(--fx). */
 
 /* ---------- tokens: light, dark (system or explicit), high contrast ---------- */
-:root { --bg: #ffffff; --surface: #f2f4f7; --ink: #0f1419; --ink-2: #566170; --line: #cdd3db; --accent: #1565c0; --on-accent: #ffffff; --soft: #e1ecf9; --danger: #c62828; color-scheme: light; }
+:root { --bg: #ffffff; --surface: #f2f4f7; --ink: #0f1419; --ink-2: #566170; --line: #cdd3db; --accent: #ab3409; --on-accent: #ffffff; --soft: #f8efeb; --danger: #c62828; color-scheme: light; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --bg: #17212b; --surface: #202d3a; --ink: #f5f7fa; --ink-2: #9aabbd; --line: #34475a; --accent: #5aa9ea; --on-accent: #0b1620; --soft: #1d3a54; --danger: #ff6b72; color-scheme: dark; }
+  :root:not([data-theme="light"]) { --bg: #17212b; --surface: #202d3a; --ink: #f5f7fa; --ink-2: #9aabbd; --line: #34475a; --accent: #ff9254; --on-accent: #2a1202; --soft: #413532; --danger: #ff6b72; color-scheme: dark; }
 }
-:root[data-theme="light"] { --bg: #ffffff; --surface: #f2f4f7; --ink: #0f1419; --ink-2: #566170; --line: #cdd3db; --accent: #1565c0; --on-accent: #ffffff; --soft: #e1ecf9; --danger: #c62828; color-scheme: light; }
-:root[data-theme="dark"] { --bg: #17212b; --surface: #202d3a; --ink: #f5f7fa; --ink-2: #9aabbd; --line: #34475a; --accent: #5aa9ea; --on-accent: #0b1620; --soft: #1d3a54; --danger: #ff6b72; color-scheme: dark; }
-:root[data-contrast="high"] { --bg: #ffffff; --surface: #f2f4f7; --ink: #000000; --ink-2: #1b2733; --line: #59636f; --accent: #0a4390; --on-accent: #ffffff; --soft: #e9f1fc; --danger: #a1111a; }
+:root[data-theme="light"] { --bg: #ffffff; --surface: #f2f4f7; --ink: #0f1419; --ink-2: #566170; --line: #cdd3db; --accent: #ab3409; --on-accent: #ffffff; --soft: #f8efeb; --danger: #c62828; color-scheme: light; }
+:root[data-theme="dark"] { --bg: #17212b; --surface: #202d3a; --ink: #f5f7fa; --ink-2: #9aabbd; --line: #34475a; --accent: #ff9254; --on-accent: #2a1202; --soft: #413532; --danger: #ff6b72; color-scheme: dark; }
+:root[data-contrast="high"] { --bg: #ffffff; --surface: #f2f4f7; --ink: #000000; --ink-2: #1b2733; --line: #59636f; --accent: #8a2704; --on-accent: #ffffff; --soft: #f8f2f0; --danger: #a1111a; }
 @media (prefers-color-scheme: dark) {
-  :root[data-contrast="high"]:not([data-theme="light"]) { --bg: #000000; --surface: #10171e; --ink: #ffffff; --ink-2: #dfe7ef; --line: #9aa7b5; --accent: #8ec5ff; --on-accent: #00111f; --soft: #10304d; --danger: #ff9aa0; }
+  :root[data-contrast="high"]:not([data-theme="light"]) { --bg: #000000; --surface: #10171e; --ink: #ffffff; --ink-2: #dfe7ef; --line: #9aa7b5; --accent: #ffb48a; --on-accent: #1a0a00; --soft: #241913; --danger: #ff9aa0; }
 }
-:root[data-contrast="high"][data-theme="dark"] { --bg: #000000; --surface: #10171e; --ink: #ffffff; --ink-2: #dfe7ef; --line: #9aa7b5; --accent: #8ec5ff; --on-accent: #00111f; --soft: #10304d; --danger: #ff9aa0; }
-:root[data-contrast="high"][data-theme="light"] { --bg: #ffffff; --surface: #f2f4f7; --ink: #000000; --ink-2: #1b2733; --line: #59636f; --accent: #0a4390; --on-accent: #ffffff; --soft: #e9f1fc; --danger: #a1111a; }
+:root[data-contrast="high"][data-theme="dark"] { --bg: #000000; --surface: #10171e; --ink: #ffffff; --ink-2: #dfe7ef; --line: #9aa7b5; --accent: #ffb48a; --on-accent: #1a0a00; --soft: #241913; --danger: #ff9aa0; }
+:root[data-contrast="high"][data-theme="light"] { --bg: #ffffff; --surface: #f2f4f7; --ink: #000000; --ink-2: #1b2733; --line: #59636f; --accent: #8a2704; --on-accent: #ffffff; --soft: #f8f2f0; --danger: #a1111a; }
 
 :root { --radius: 18px; --r-s: 10px; --r-m: 14px; }
 
@@ -158,6 +158,15 @@
 .set-card { padding-block: 2px; gap: 0; }
 .set-row { border-bottom: var(--bw) solid var(--line); }
 .set-row:last-child { border-bottom: 0; }
+/* angle unit + decimals share one line: the pair carries the hairline, its rows do not */
+.set-pair { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 0 var(--s3); border-bottom: var(--bw) solid var(--line); }
+.set-pair > .set-row { border-bottom: 0; }
+.set-pair .range { width: 100%; }
+.set-pair .seg-btn { overflow-wrap: normal; padding: 0 2px; }
+.set-row.appearance .btn { justify-content: flex-start; min-height: 40px; }
+.set-row.appearance .btn > [data-part="label"] { flex: 1; text-align: start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-height: 560px) { .set-card .set-row { padding-block: 3px; } }
+.sheet-body .set-row { border-bottom: 0; padding: 3px 0; }
 .set-row > .lbl, .slider > .lbl { flex-direction: row; align-items: center; gap: 6px; font-size: calc(12.5px * var(--fs)); color: var(--ink-2); }
 .set-row .seg-btn { min-height: 30px; }
 .range { accent-color: var(--accent); height: 26px; }

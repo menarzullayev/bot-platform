@@ -2,6 +2,8 @@ import type { Db } from "./db";
 
 export const LANGS = ["uz-latn", "uz-cyrl", "ru", "en", "tr", "ar", "es"] as const;
 export type Lang = (typeof LANGS)[number];
+export const DEFAULT_DEGRADE_L1 = 70_000;
+export const DEFAULT_DEGRADE_L2 = 90_000;
 export const LOG_LEVELS = ["error", "warn", "info", "debug"] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
@@ -20,6 +22,9 @@ export interface Env {
   LOG_LEVEL?: string;
   INITDATA_MAX_AGE_S?: string;
   DEFAULT_LANG?: string;
+  /** Daily Worker request counts at which degradation level 1 / 2 starts (DEC-013). */
+  DEGRADE_L1?: string;
+  DEGRADE_L2?: string;
 }
 
 /** Test/qo'shimcha bog'liqliklar: ishlab chiqarishda bo'sh qoladi. */
@@ -36,6 +41,9 @@ export interface AppConfig {
   logLevel: LogLevel;
   initDataMaxAgeS: number;
   defaultLang: Lang;
+  /** Optional so hand-built configs keep compiling; absent = DEFAULT_DEGRADE_L1/L2. */
+  degradeL1?: number;
+  degradeL2?: number;
 }
 
 function isKey32(v: string): boolean {
@@ -71,6 +79,20 @@ export function validateEnv(env: Partial<Env>): { ok: true; config: AppConfig } 
   const maxAge = Number(env.INITDATA_MAX_AGE_S ?? "3600");
   if (!Number.isInteger(maxAge) || maxAge < 60 || maxAge > 86400) errors.push("INITDATA_MAX_AGE_S: 60..86400 butun son");
 
+  const parseLevel = (name: "DEGRADE_L1" | "DEGRADE_L2", dflt: number): number => {
+    const raw = env[name];
+    if (raw === undefined || raw === "") return dflt;
+    const n = Number(raw);
+    if (!/^\d+$/.test(raw) || !Number.isSafeInteger(n) || n < 1 || n > 100_000_000) {
+      errors.push(`${name}: 1..100000000 butun son`);
+      return dflt;
+    }
+    return n;
+  };
+  const degradeL1 = parseLevel("DEGRADE_L1", DEFAULT_DEGRADE_L1);
+  const degradeL2 = parseLevel("DEGRADE_L2", DEFAULT_DEGRADE_L2);
+  if (degradeL1 >= degradeL2) errors.push("DEGRADE_L1 DEGRADE_L2 dan kichik bo'lishi kerak");
+
   let publicBaseUrl: string | null = null;
   if (env.PUBLIC_BASE_URL) {
     try {
@@ -95,6 +117,8 @@ export function validateEnv(env: Partial<Env>): { ok: true; config: AppConfig } 
       logLevel: logLevel as LogLevel,
       initDataMaxAgeS: maxAge,
       defaultLang: defaultLang as Lang,
+      degradeL1,
+      degradeL2,
     },
   };
 }

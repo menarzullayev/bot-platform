@@ -4,11 +4,13 @@ import { globalFetch } from "../http";
 // The bot token (decrypted from D1) lives only inside authenticate()/createInvoice() and is never logged or returned.
 
 import { decryptToken } from "../crypto";
+import { getDegradation, peekDegradation, secondsUntilReset, type DegradeLevel } from "../degrade";
 import { getBot, type BotRow, type Db } from "../db";
 import type { Env, Lang } from "../env";
 import { isStale, loadRates } from "../fx/store";
 import { detectLang, isLang, t } from "../i18n";
 import { errInfo, log } from "../log";
+import { count, type WaitUntil } from "../metrics";
 import {
   STARS_CURRENCY,
   SUBSCRIPTION_PERIOD_S,
@@ -21,6 +23,7 @@ import { RateLimiter } from "../ratelimit";
 import { resolveAppConfig, type PlatformDeps } from "../templates";
 import { CONTRAST_VALUES, DENSITY_VALUES, FS_VALUES, LITE_VALUES, STYLE_IDS, pickEnum } from "../templates/calc/style";
 import { parseAuthHeader, verifyInitData, type TgUser } from "./auth";
+import { createCard } from "./cards";
 import { HttpError, errorResponse, json, readJson } from "./http";
 import { validate, type Spec } from "./schema";
 
@@ -32,6 +35,7 @@ const ACTIONS = {
   settings: ["POST"],
   history: ["GET", "POST", "DELETE"],
   invoice: ["POST"],
+  card: ["POST"],
 } as const;
 type Action = keyof typeof ACTIONS;
 
@@ -265,9 +269,9 @@ async function createInvoice(a: {
 }
 
 /** Entry point for every /api/app/* request. Never throws: every failure is a JSON error response. */
-export async function handleAppApi(req: Request, env: Env, deps: PlatformDeps = {}): Promise<Response> {
+export async function handleAppApi(req: Request, env: Env, deps: PlatformDeps = {}, ctx?: WaitUntil): Promise<Response> {
   try {
-    return await route(req, env, deps);
+    return await route(req, env, deps, ctx);
   } catch (e) {
     if (e instanceof HttpError) return errorResponse(e);
     log("error", "miniapp: api failed", { error: errInfo(e) });
@@ -275,7 +279,7 @@ export async function handleAppApi(req: Request, env: Env, deps: PlatformDeps = 
   }
 }
 
-async function route(req: Request, env: Env, deps: PlatformDeps): Promise<Response> {
+async function route(req: Request, env: Env, deps: PlatformDeps, ctx?: WaitUntil): Promise<Response> {
   const url = new URL(req.url);
   const m = API_RE.exec(url.pathname);
   if (!m || !Object.hasOwn(ACTIONS, m[2])) throw new HttpError(404, "not_found");
@@ -303,9 +307,21 @@ async function route(req: Request, env: Env, deps: PlatformDeps): Promise<Respon
     );
   }
 
+  // DEC-013: in light mode the expensive writes are refused before any auth/HMAC/D1 work is spent on them.
+  // Writes other than cards use the free in-memory level (refreshed off-path by index.ts); card creation is rare and
+  // expensive, so it awaits a fresh-enough total.
+  const level: DegradeLevel = action === "card" ? await getDegradation(db, now, config) : peekDegradation(db, now, config);
+  const degradedOut = (): HttpError =>
+    new HttpError(503, "degraded", "light mode: this feature is temporarily off", { "retry-after": String(secondsUntilReset(now)) });
+  if (action === "card" && level >= 1) throw degradedOut();
+  if (level >= 2 && (action === "settings" || (action === "history" && req.method === "POST"))) throw degradedOut();
+
   const auth = await authenticate(req, env, db, botId, now, config.initDataMaxAgeS);
   if (lim.user.limited(`${botId}:${auth.user.id}`, nowMs)) {
     throw new HttpError(429, "rate_limited", undefined, { "retry-after": "5" });
+  }
+  if (action === "card") {
+    return createCard({ req, db, botId, userId: auth.user.id, token: auth.token, config, level, now, nowMs, fetchFn: deps.fetchFn, ctx });
   }
   const row = await loadUser(db, botId, auth.user.id);
   const isPro = row.pro_until > now;
@@ -314,6 +330,10 @@ async function route(req: Request, env: Env, deps: PlatformDeps): Promise<Respon
     case "me": {
       const s = toSettings(row);
       const lang = s.lang ?? detectLang(auth.user.language_code, config.defaultLang);
+      // anonymous aggregates only (DEC-015): the key carries a value (lang/style), never the user
+      count(db, botId, "app:open", 1, { nowMs, ctx });
+      count(db, botId, `lang:${lang}`, 1, { nowMs, ctx });
+      if (s.style) count(db, botId, `style:${s.style}`, 1, { nowMs, ctx });
       return json({
         user: {
           id: auth.user.id,
@@ -326,6 +346,7 @@ async function route(req: Request, env: Env, deps: PlatformDeps): Promise<Respon
         settings: settingsJson(s),
         limits: { history: historyLimit(isPro) },
         pro_stars: botProConfig(auth.bot).proStars,
+        degraded: level,
       });
     }
 
