@@ -23,10 +23,6 @@ jobs:
     defaults:
       run:
         working-directory: worker
-    env:
-      # TODO(P7): remove once miniapp/shots/baseline/linux/ is committed (download the `shots-actual` artifact of a run,
-      # or run `npm run shots:update` on Linux). Until then a missing baseline is a warning, the layout checks still gate.
-      SHOTS_ALLOW_MISSING: "1"
     steps:
       - uses: actions/checkout@v4
 
