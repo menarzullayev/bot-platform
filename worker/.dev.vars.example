@@ -1,0 +1,41 @@
+# bot-platform / worker: LOKAL ishlab chiqish qiymatlari (wrangler dev shu faylni o'qiydi)
+#
+# Ishlatish:   cp .dev.vars.example .dev.vars   (keyin to'ldiring; .dev.vars git'ga KIRMAYDI)
+# Production:  bu fayl ishlatilmaydi. Secretlar `wrangler secret put NOM` bilan, oddiy
+#              qiymatlar wrangler.toml [vars] ichida turadi (pastdagi jadvalga qarang).
+# Qoida:       bu faylga HAQIQIY qiymat yozilmaydi. Bot tokenlari bu yerda UMUMAN yo'q:
+#              ular D1'da AES-GCM bilan shifrlanib turadi, admin API orqali qo'shiladi.
+
+# ---------- SECRET (production: wrangler secret put) ----------
+
+# [majburiy] Bot tokenlarini D1'da shifrlash kaliti: 32 bayt, base64.
+# Yaratish:  openssl rand -base64 32
+# Yo'qotsangiz D1'dagi hamma bot tokeni ochilmaydi: zaxirasini alohida joyda saqlang.
+TOKEN_KEY=
+
+# [majburiy] /admin/* uchun Bearer token (kamida 32 belgi, tasodifiy).
+# Yaratish:  openssl rand -hex 32
+ADMIN_TOKEN=
+
+# [ixtiyoriy] Kalitni almashtirishda eski kalit (o'qish uchun); yangi yozuvlar TOKEN_KEY bilan.
+# TOKEN_KEY_PREV=
+
+# [ixtiyoriy, F2] Valyuta kursi manbai kalit talab qilsa (cbu.uz va open.er-api.com kalitsiz).
+# FX_API_KEY=
+
+# ---------- ODDIY SOZLAMA (production: wrangler.toml [vars]; secret emas) ----------
+
+# local | production (staging yo'q: qaror 2026-11-20)
+APP_ENV=local
+
+# Webhook va Mini App uchun ochiq manzil (oxirida / yo'q).
+PUBLIC_BASE_URL=http://localhost:8787
+
+# error | warn | info | debug
+LOG_LEVEL=debug
+
+# Mini App initData eskirish muddati, soniya.
+INITDATA_MAX_AGE_S=3600
+
+# Til yo'q bo'lganda: uz-latn | uz-cyrl | ru | en | tr | ar | es
+DEFAULT_LANG=uz-latn

@@ -1,0 +1,12 @@
+# Shaxsiy/ichki hujjatlar ommaga chiqmaydi
+CTO-TAVSIYA.md
+docs/private/
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
+*.log

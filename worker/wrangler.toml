@@ -1,0 +1,25 @@
+name = "bot-platform"
+main = "src/index.ts"
+compatibility_date = "2026-11-20"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bots-db"
+# `wrangler d1 create bots-db` chiqargan ID ni shu yerga yozing
+database_id = "6d4f369a-0081-464f-a64d-bbfda716ed9b"
+
+[observability]
+enabled = true
+
+# Maxfiy bo'lmagan sozlamalar (production). Lokal qiymatlar .dev.vars da.
+[vars]
+APP_ENV = "production"
+PUBLIC_BASE_URL = "https://bot-platform.tezbot-lab.workers.dev"
+LOG_LEVEL = "info"
+INITDATA_MAX_AGE_S = "3600"
+DEFAULT_LANG = "uz-latn"
+
+# Maxfiy qiymatlar (wrangler secret put ...):
+#   TOKEN_KEY   - 32 bayt base64 (AES-GCM kaliti): openssl rand -base64 32
+#   ADMIN_TOKEN - admin API uchun uzun tasodifiy qator

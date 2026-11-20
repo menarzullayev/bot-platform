@@ -1,0 +1,47 @@
+name: Deploy
+
+# Faqat CI yashil bo'lgach va repo o'zgaruvchisi DEPLOY_ENABLED=true bo'lganda ishlaydi.
+# Kerakli secretlar: CLOUDFLARE_API_TOKEN (faqat Workers + D1 huquqi), CLOUDFLARE_ACCOUNT_ID.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+      - run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Smoke test
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" https://bot-platform.tezbot-lab.workers.dev/health)
+            [ "$code" = "200" ] && exit 0
+            sleep 5
+          done
+          echo "health tekshiruvi muvaffaqiyatsiz"; exit 1
