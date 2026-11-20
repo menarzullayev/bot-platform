@@ -1,4 +1,4 @@
-// TEMPLATE tokens: replace every value with the palette of your style. The contrast gate
+// @@NAME@@ tokens (style id "@@ID@@"): replace every value with the palette of your style. The contrast gate
 // (worker/test/miniapp/contrast.test.ts) checks each set: normal >= 4.5:1 for text pairs and 3:1 for accent on bg;
 // high contrast >= 7:1 for text pairs. Copy the same hex values into pack.css (a test verifies that every value
 // here appears there).

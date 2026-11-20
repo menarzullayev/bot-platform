@@ -13,7 +13,10 @@ styles/<id>/
 
 ## Steps
 
-1. `cp -r styles/_template styles/<id>` (id is one of `tactile | glass | fintech | techno`, see `contract/model.ts`).
+1. `cd worker && npm run new-style -- <id> "<Name>"` copies this folder to `styles/<id>` (placeholders `@@NAME@@` / `@@ID@@` and the
+   `templateKit` / `templateTokens` names are filled in), adds the pack's `vi.mock` line to the contract test and prints the manual
+   registration steps. `npm run atlas-import -- <atlas-style> --as <id>` does the same and starts from an atlas palette. Full guide:
+   `docs/STYLES.md`. (By hand: `cp -r`, then fix the names; the id is one of `STYLE_IDS` in `contract/model.ts`.)
 2. `meta`: the style's swatch (bg / accent / key, light + dark) lives in `styles/meta.ts`. Set it there, then
    `meta: STYLE_META.<id>` in your `index.ts`. The swatch must be consistent with your tokens.
 3. Replace `tokens.ts` and the token blocks at the top of `pack.css` (same hex values in both; a test checks it).
@@ -87,10 +90,13 @@ npx vitest run test/miniapp/pages.test.ts      # the six real pages drawn by the
 npx tsc --noEmit && npm run typecheck:app && npx vitest run && npm run build   # the full gate
 ```
 
-`contract.test.ts`, `registry.test.ts` and `pages.test.ts` use `PACKS` (worker/test/miniapp/dom-src.ts) and a `vi.mock` of
-your `pack.css?url` (copy the two existing lines: vite cannot serve CSS from outside the worker root, the production build can);
-`contrast.test.ts` has its own `TOKEN_PACKS` list (tokens + pack.css path). Add your pack to all of them. The `_template`
+`contract.test.ts`, `registry.test.ts` and `contrast.test.ts` build their pack lists from the `styles/*` folders (`PACKS` / `loadTokenPacks` in
+worker/test/miniapp/dom-src.ts), so a pack is covered as soon as its folder exists. The only manual line is the `vi.mock` of your
+`pack.css?url` in `contract.test.ts` (vite cannot serve CSS from outside the worker root, the production build can); the generator adds it and
+the test fails with the exact line to paste if it is missing. `pages.test.ts` has its own short list (fintech + this template). The `_template`
 pack is in the lists as the reference implementation.
+
+Screenshots: `npm run shots:update` takes the baseline of every registered style, `npm run shots` compares (see `docs/STYLES.md`).
 
 ## Strings
 

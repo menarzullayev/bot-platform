@@ -14,7 +14,11 @@
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply bots-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply bots-db --remote",
-    "brand": "node ../brand/build.mjs"
+    "brand": "node ../brand/build.mjs",
+    "new-style": "node ../scripts/new-style.mjs",
+    "atlas-import": "node ../scripts/atlas-import.mjs",
+    "shots": "node ../scripts/shots/run.mjs",
+    "shots:update": "node ../scripts/shots/run.mjs --update"
   },
   "dependencies": {
     "grammy": "^1.46.0"
@@ -25,6 +29,9 @@
     "esbuild": "^0.28.2",
     "happy-dom": "^21.0.4",
     "jpeg-js": "^0.4.4",
+    "pixelmatch": "^8.0.0",
+    "playwright-core": "^1.65.1",
+    "pngjs": "^7.0.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.1",
     "wrangler": "^4.165.0"

@@ -4,18 +4,22 @@ import { describe, expect, it } from "vitest";
 import { TOKEN_NAMES, TOKEN_VARS, type StyleTokens } from "../../../miniapp/src/contract/model";
 import { STYLE_META } from "../../../miniapp/src/styles/meta";
 import { fintechTokens } from "../../../miniapp/src/styles/fintech/tokens";
-import { templateTokens } from "../../../miniapp/src/styles/_template/tokens";
+import { loadTokenPacks } from "./dom-src";
 import { checkTokens, ratio } from "./style-gate";
 
 const SRC = resolve(import.meta.dirname, "../../../miniapp/src");
 
-// pack name -> tokens + the stylesheet that must repeat them (add your pack here, see styles/_template/README.md)
-const TOKEN_PACKS: ReadonlyArray<readonly [string, StyleTokens, string]> = [
-  ["fintech", fintechTokens, "styles/fintech/pack.css"],
-  ["_template", templateTokens, "styles/_template/pack.css"],
-];
+// every folder of miniapp/src/styles with an index.ts (tactile, glass, fintech, techno, generated styles, _template):
+// pack name -> tokens + the stylesheet that must repeat them. Nothing to register here (see styles/_template/README.md).
+const TOKEN_PACKS: ReadonlyArray<readonly [string, StyleTokens, string]> = await loadTokenPacks();
 
 describe("contrast gate (WCAG): StyleTokens of every pack", () => {
+  it("covers every registered style and the template", () => {
+    const names = TOKEN_PACKS.map(([n]) => n);
+    for (const id of Object.keys(STYLE_META)) expect(names, `pack ${id}`).toContain(id);
+    expect(names).toContain("_template");
+  });
+
   it("computes WCAG ratios correctly", () => {
     expect(ratio("#000000", "#ffffff")).toBeCloseTo(21, 5);
     expect(ratio("#ffffff", "#ffffff")).toBeCloseTo(1, 5);

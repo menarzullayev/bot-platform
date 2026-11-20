@@ -33,7 +33,8 @@ beforeEach(async () => {
   fintech = (await loadSrc("styles/fintech/index.ts")).default;
   template = (await loadSrc("styles/_template/index.ts")).default;
   // pin the availability this file tests, whatever other styles exist later
-  for (const id of ["tactile", "glass", "techno"]) reg.setStyleLoader(id, null);
+  // (every registered id except fintech, so a style added later does not change what this file asserts)
+  for (const id of reg.STYLE_IDS) if (id !== "fintech") reg.setStyleLoader(id, null);
 });
 
 afterEach(() => {
@@ -42,19 +43,25 @@ afterEach(() => {
 });
 
 describe("style registry: ids, availability, fallback", () => {
-  it("lists the four styles, the default is tactile and the fallback is fintech", () => {
-    expect([...reg.STYLE_IDS]).toEqual(["tactile", "glass", "fintech", "techno"]);
+  it("lists the four shipped styles first (new styles are appended), the default is tactile and the fallback is fintech", () => {
+    expect([...reg.STYLE_IDS].slice(0, 4)).toEqual(["tactile", "glass", "fintech", "techno"]);
     expect(reg.DEFAULT_STYLE).toBe("tactile");
     expect(reg.FALLBACK_STYLE).toBe("fintech");
   });
 
   it("listStyles reports availability per style (picker shows the unavailable ones with a badge)", () => {
     const list = reg.listStyles();
-    expect(list.map((s: any) => s.meta.id)).toEqual(["tactile", "glass", "fintech", "techno"]);
-    expect(Object.fromEntries(list.map((s: any) => [s.meta.id, s.available]))).toEqual({ tactile: false, glass: false, fintech: true, techno: false });
+    expect(list.map((s: any) => s.meta.id)).toEqual([...reg.STYLE_IDS]);
+    expect(Object.fromEntries(list.map((s: any) => [s.meta.id, s.available]))).toEqual(Object.fromEntries([...reg.STYLE_IDS].map((id: string) => [id, id === "fintech"])));
     for (const s of list) expect(s.meta.swatch.light.bg).toMatch(/^#[0-9a-f]{6}$/);
     expect(reg.isAvailable("fintech")).toBe(true);
     expect(reg.isAvailable("tactile")).toBe(false);
+  });
+
+  it("the real registry (before this file pins availability) ships a loader for each of the four shipped styles", async () => {
+    vi.resetModules();
+    const real = await loadSrc("styles/registry.ts");
+    for (const id of ["tactile", "glass", "fintech", "techno"]) expect(real.isAvailable(id), id).toBe(true);
   });
 
   it("effectiveStyle maps an unavailable preference to the fallback", () => {

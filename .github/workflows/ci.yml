@@ -14,3 +14,60 @@ jobs:
     with:
       node-version: "22"
       working-directory: worker
+
+  # Screenshot regression (DEC-017): 4 styles x 2 themes x 3 viewports x 6 pages + layout checks. Separate job (no `needs`),
+  # so it runs in parallel with the main CI and never delays it. Baselines are per platform: miniapp/shots/baseline/linux/.
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      # TODO(P7): remove once miniapp/shots/baseline/linux/ is committed (download the `shots-actual` artifact of a run,
+      # or run `npm run shots:update` on Linux). Until then a missing baseline is a warning, the layout checks still gate.
+      SHOTS_ALLOW_MISSING: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Chromium version for the cache key
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache chromium
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Install chromium system libraries (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright-core install-deps chromium
+
+      - name: Screenshot regression
+        run: npm run shots
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shots-actual
+          path: |
+            miniapp/shots/actual
+            miniapp/shots/diff
+          retention-days: 7
+          if-no-files-found: ignore

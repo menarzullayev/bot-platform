@@ -6,12 +6,16 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { PACKS, loadSrc } from "./dom-src";
+import { PACKS, loadSrc, packDirs } from "./dom-src";
 
 // `import url from "./pack.css?url"` is an esbuild-plugin feature of the production build and vite refuses to serve
 // CSS from outside the worker root, so the tests stub the URL (the stylesheet text is read with fs where needed).
+vi.mock("../../../miniapp/src/styles/tactile/pack.css?url", () => ({ default: "/app/pack-tactile.css" }));
+vi.mock("../../../miniapp/src/styles/glass/pack.css?url", () => ({ default: "/app/pack-glass.css" }));
 vi.mock("../../../miniapp/src/styles/fintech/pack.css?url", () => ({ default: "/app/pack-fintech.css" }));
+vi.mock("../../../miniapp/src/styles/techno/pack.css?url", () => ({ default: "/app/pack-techno.css" }));
 vi.mock("../../../miniapp/src/styles/_template/pack.css?url", () => ({ default: "/app/pack-template.css" }));
+// `npm run new-style` appends the line of a new pack right after the last vi.mock above
 
 const SRC = resolve(import.meta.dirname, "../../../miniapp/src");
 
@@ -59,6 +63,22 @@ function radioContract(make: (o: unknown) => any): void {
   expect(onPick).toHaveBeenCalledTimes(n);
 }
 
+describe("pack list (derived from miniapp/src/styles/*)", () => {
+  it("every pack folder has its pack.css?url vi.mock line in this file (npm run new-style adds it)", () => {
+    const self = readFileSync(import.meta.filename, "utf8");
+    for (const d of packDirs()) {
+      expect(self, `add: vi.mock("../../../miniapp/src/styles/${d}/pack.css?url", () => ({ default: "/app/pack-${d}.css" }));`).toContain(`vi.mock("../../../miniapp/src/styles/${d}/pack.css?url"`);
+    }
+  });
+
+  it("covers every registered style plus the template", async () => {
+    const { STYLE_IDS } = await loadSrc("contract/model.ts");
+    const names = PACKS.map(([n]) => n);
+    for (const id of STYLE_IDS) expect(names, `pack ${id}`).toContain(id);
+    expect(names).toContain("_template");
+  });
+});
+
 for (const [packName, entry] of PACKS) {
   describe(`Kit contract: ${packName}`, () => {
     let pack: any;
@@ -76,8 +96,10 @@ for (const [packName, entry] of PACKS) {
 
     const packCss = (): string => readFileSync(resolve(SRC, entry.replace(/index\.ts$/, "pack.css")), "utf8");
 
-    it("is a complete StylePack (meta, kit, tokens, stylesheet URL and a real pack.css)", () => {
-      expect(pack.meta.id).toMatch(/^(tactile|glass|fintech|techno)$/);
+    it("is a complete StylePack (meta, kit, tokens, stylesheet URL and a real pack.css)", async () => {
+      // a generated skeleton still points at a registered placeholder id until it is registered (see its index.ts TODO)
+      const { STYLE_IDS } = await loadSrc("contract/model.ts");
+      expect(STYLE_IDS).toContain(pack.meta.id);
       expect(pack.meta.nameKey).toBe("style_" + pack.meta.id);
       expect(pack.tokens.light.accent).toMatch(/^#[0-9a-f]{6}$/);
       expect(typeof pack.cssHref).toBe("string");
@@ -594,7 +616,13 @@ for (const [packName, entry] of PACKS) {
       expect(css).toContain("var(--bw)");
       expect(css).toContain('[data-contrast="high"]');
       // effects must scale with --fx: no raw blur() / backdrop-filter radius
-      for (const m of css.matchAll(/blur\(([^)]*\)?[^)]*)\)/g)) expect(m[1], `blur(${m[1]})`).toContain("--fx");
+      // (exempt: @supports feature probes, and a custom property that holds a whole filter, e.g. glass's `--bf`, which the
+      // pack switches off through --fx elsewhere; the pack's own style-<id>.test.ts proves that switch)
+      for (const m of css.matchAll(/blur\(([^)]*\)?[^)]*)\)/g)) {
+        const line = css.slice(css.lastIndexOf("\n", m.index) + 1, m.index + m[0].length);
+        if (/@supports/.test(line) || /--[\w-]+\s*:[^;]*$/.test(line.slice(0, line.length - m[0].length))) continue;
+        expect(m[1], `blur(${m[1]})`).toContain("--fx");
+      }
       // a pack must not hard-code the properties that belong to core geometry
       expect(css).not.toMatch(/--ctl\s*:/);
       expect(css).not.toMatch(/--fs\s*:/);

@@ -1,4 +1,4 @@
-// TEMPLATE KIT: the smallest working implementation of every Kit component. Copy this folder to styles/<id>/ and
+// @@NAME@@ KIT (style id "@@ID@@"): the smallest working implementation of every Kit component. Copy this folder to styles/<id>/ and
 // replace markup/paint component by component (keep `data-ui`, `data-part`, ARIA state and the behaviours: the contract
 // tests check them). Event logic comes from contract/helpers (onPress, radioGroup), so a new style is mostly markup.
 // Selectors in pack.css use the data-ui / data-part / ARIA attributes only; add classes if you prefer them.
