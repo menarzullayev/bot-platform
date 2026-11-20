@@ -17,7 +17,8 @@ const PROTECTED = new RegExp(
     "(?<![A-Za-z0-9_])@[A-Za-z0-9_]{3,}", // @mentions
     "(?<![A-Za-z0-9_\\/])\\/[a-z][a-z_]*", // /commands (not "km/soat")
     "`[^`]*`", // backtick code
-    "\\b[A-Z]{3}\\b", // currency / ISO codes: USD, UZS, EUR
+    "\\d[\\d\\s.,]*\\s?[A-Za-z]{1,6}\\s+(?:to|in)\\s+[A-Za-z]{1,6}\\b", // calculator input examples in plain text: 100 km to mi
+    "\\b[A-Z]{3}\\b", // currency / ISO codes: USD, UZS, EUR (QQS is Uzbek, see ACRONYMS)
     "TezCalc", // brand stays Latin
   ].join("|"),
   "g",
@@ -27,6 +28,9 @@ const MAP: Record<string, string> = {
   a: "а", b: "б", c: "к", d: "д", e: "е", f: "ф", g: "г", h: "ҳ", i: "и", j: "ж", k: "к", l: "л", m: "м",
   n: "н", o: "о", p: "п", q: "қ", r: "р", s: "с", t: "т", u: "у", v: "в", w: "в", x: "х", y: "й", z: "з",
 };
+
+// Uzbek acronyms that look like ISO codes but must be written in Cyrillic (QQS -> ҚҚС, VAT).
+const ACRONYMS: Record<string, string> = { QQS: "ҚҚС" };
 
 const isLatin = (c: string | undefined): boolean => c !== undefined && /^[A-Za-z]$/.test(c);
 const isApos = (c: string | undefined): boolean => c !== undefined && c.length === 1 && APOSTROPHES.includes(c);
@@ -151,7 +155,7 @@ export function latinToCyrillic(text: string): string {
   let last = 0;
   for (const m of text.matchAll(PROTECTED)) {
     const at = m.index ?? 0;
-    out += plain(text.slice(last, at)) + m[0];
+    out += plain(text.slice(last, at)) + (ACRONYMS[m[0]] ?? m[0]);
     last = at + m[0].length;
   }
   return out + plain(text.slice(last));

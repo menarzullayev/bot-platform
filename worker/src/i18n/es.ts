@@ -64,7 +64,7 @@ export const es: Messages = {
     "✅ Historial sincronizado entre tus dispositivos\n" +
     "✅ Historial ilimitado\n" +
     "✅ Unidades y divisas avanzadas",
-  pro_price: "💳 Precio: {stars} ⭐ Telegram Stars cada 30 días. El pago lo gestiona Telegram y la suscripción se renueva automáticamente.",
+  pro_price: "💳 Precio: {stars} ⭐ Estrellas de Telegram cada 30 días. El pago lo gestiona Telegram y la suscripción se renueva automáticamente.",
   pro_active: "✅ Tu suscripción Pro está activa hasta el {date}.",
   pro_required: "🔒 Esta función forma parte de TezCalc Pro. Más información en /pro.",
   pro_thanks: "🎉 ¡Gracias! Pro ya está activo. Disfruta de las soluciones paso a paso, las gráficas y el historial ilimitado.",
@@ -78,7 +78,7 @@ export const es: Messages = {
     "<b>Qué guardamos</b>\n" +
     "• Tu ID de Telegram, tu idioma y tus ajustes (unidad de ángulo, número de decimales).\n" +
     "• Tu historial de cálculos, solo si el historial está activado (Pro).\n" +
-    "• Identificadores de pago (ID de pagos y suscripciones de Stars) para confirmar y atender tu suscripción Pro.\n\n" +
+    "• Identificadores de pago (ID de pagos y suscripciones con Estrellas) para confirmar y atender tu suscripción Pro.\n\n" +
     "<b>Qué no hacemos</b>\n" +
     "• Las expresiones que envías se procesan solo para calcular la respuesta y no se guardan si el historial está desactivado.\n" +
     "• No vendemos tus datos, no los compartimos con terceros ni los usamos para publicidad. Los pagos los procesa Telegram; nunca vemos los datos de tu tarjeta.\n" +
@@ -89,16 +89,16 @@ export const es: Messages = {
   terms:
     "<b>📄 Condiciones de uso</b>\n\n" +
     "1. TezCalc es una herramienta de cálculo. Los resultados se ofrecen «tal cual» y pueden contener errores; comprueba por tu cuenta las cifras importantes. Los tipos de cambio son orientativos y no constituyen asesoramiento financiero.\n" +
-    "2. Pro es un servicio digital que se paga con Telegram Stars. Es una suscripción de 30 días que se renueva automáticamente hasta que la canceles en Telegram.\n" +
+    "2. Pro es un servicio digital que se paga con Estrellas de Telegram. Es una suscripción de 30 días que se renueva automáticamente hasta que la canceles en Telegram.\n" +
     "3. Reembolsos y problemas de pago: consulta /paysupport.\n" +
     "4. No abuses del bot (spam, solicitudes masivas automatizadas, intentos de vulnerarlo). Podemos limitar o bloquear un uso abusivo.\n" +
     "5. El bot y estas condiciones pueden actualizarse. Si sigues usándolo, aceptas las condiciones vigentes.",
 
   paysupport:
     "<b>💬 Soporte de pagos</b>\n\n" +
-    "¿Tienes un problema con un pago de Stars o quieres un reembolso? Responde a este mensaje y describe el problema. " +
-    "Indica la fecha del pago y la cantidad de Stars.\n\n" +
-    "Cada solicitud se revisa de forma individual. Los Stars reembolsados vuelven a tu saldo de Telegram. " +
+    "¿Tienes un problema con un pago con Estrellas o quieres un reembolso? Responde a este mensaje y describe el problema. " +
+    "Indica la fecha del pago y la cantidad de Estrellas.\n\n" +
+    "Cada solicitud se revisa de forma individual. Las Estrellas reembolsadas vuelven a tu saldo de Telegram. " +
     "Para evitar cargos futuros, cancela la suscripción como se explica en /pro.",
 
   deleteme_confirm:

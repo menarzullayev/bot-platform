@@ -39,11 +39,11 @@ export const tr: Messages = {
   btn_cancel: "İptal",
   btn_delete: "🗑 Verilerimi sil",
 
-  err_syntax: "⚠️ {pos}. konumun yakınında sözdizimi hatası var. Parantezleri ve işlemleri kontrol edin.",
+  err_syntax: "⚠️ {pos}. konumun yakınında sözdizimi hatası var. Parantezleri ve işleçleri kontrol edin.",
   err_div0: "⚠️ Sıfıra bölme tanımsızdır.",
   err_domain: "⚠️ Bu değer fonksiyonun tanım kümesinin dışında (örneğin negatif sayının karekökü veya sıfırın logaritması).",
   err_overflow: "⚠️ Sonuç görüntülenemeyecek kadar büyük.",
-  err_unknown: "⚠️ “{name}” ne demek bilmiyorum. Fonksiyon, birim veya para biriminin yazımını kontrol edin.",
+  err_unknown: "⚠️ “{name}” ifadesini tanımıyorum. Fonksiyon, birim veya para biriminin yazımını kontrol edin.",
   err_too_long: "⚠️ İfade çok uzun. Lütfen kısaltın.",
   err_units_mismatch: "⚠️ Bu birimler birbirine dönüştürülemez (örneğin uzunluk ile kütle).",
   err_no_rate: "⚠️ Şu anda {pair} için kur bulunamıyor. Lütfen daha sonra tekrar deneyin.",

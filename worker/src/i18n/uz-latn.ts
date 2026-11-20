@@ -36,7 +36,7 @@ export const uzLatn: Messages = {
   lang_changed: "✅ Til oʻzgartirildi: oʻzbekcha.",
   settings_title: "⚙️ <b>Sozlamalar</b>",
   settings_angle: "📐 Trigonometriya uchun burchak birligi: daraja (<code>deg</code>) yoki radian (<code>rad</code>)",
-  settings_digits: "🔢 Natijadagi kasr xonalar soni",
+  settings_digits: "🔢 Natijadagi kasr xonalari soni",
   btn_back: "↩️ Orqaga",
   btn_cancel: "Bekor qilish",
   btn_delete: "🗑 Maʼlumotlarimni oʻchirish",
@@ -63,7 +63,7 @@ export const uzLatn: Messages = {
   pro_features:
     "✅ Bosqichma-bosqich yechim\n" +
     "✅ Funksiya grafiklari\n" +
-    "✅ Qurilmalar oʻrtasida tarix sinxroni\n" +
+    "✅ Qurilmalar oʻrtasida sinxronlanadigan tarix\n" +
     "✅ Cheksiz tarix\n" +
     "✅ Kengaytirilgan birliklar va valyutalar",
   pro_price: "💳 Narxi: 30 kun uchun {stars} ⭐ Telegram Stars. Toʻlovni Telegram amalga oshiradi, obuna avtomatik yangilanadi.",
@@ -78,11 +78,11 @@ export const uzLatn: Messages = {
   privacy:
     "<b>🔒 Maxfiylik siyosati</b>\n\n" +
     "<b>Nimalar saqlanadi</b>\n" +
-    "• Telegram identifikatoringiz, tilingiz va sozlamalaringiz (burchak birligi, kasr xonalar soni).\n" +
+    "• Telegram identifikatoringiz, tilingiz va sozlamalaringiz (burchak birligi, kasr xonalari soni).\n" +
     "• Hisob-kitoblar tarixi — faqat tarix yoqilgan boʻlsa (Pro).\n" +
     "• Toʻlov identifikatorlari (Stars toʻlovi va obuna identifikatorlari) — Pro obunangizni tasdiqlash va qoʻllab-quvvatlash uchun.\n\n" +
     "<b>Nimalar qilinmaydi</b>\n" +
-    "• Yuborgan ifodalaringiz faqat javob hisoblash uchun qayta ishlanadi, tarix oʻchiq boʻlsa saqlanmaydi.\n" +
+    "• Yuborgan ifodalaringiz faqat javobni hisoblash uchun qayta ishlanadi, tarix oʻchiq boʻlsa saqlanmaydi.\n" +
     "• Maʼlumotlaringiz sotilmaydi, uchinchi shaxslarga berilmaydi va reklama uchun ishlatilmaydi. Toʻlovlarni Telegram qayta ishlaydi, karta maʼlumotlaringizni biz koʻrmaymiz.\n" +
     "• Valyuta kurslari ochiq manbadan olinadi, u yerga shaxsiy maʼlumotlaringiz yuborilmaydi.\n\n" +
     "<b>Nazorat sizda</b>\n" +

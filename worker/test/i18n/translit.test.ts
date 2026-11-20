@@ -75,6 +75,10 @@ const PROTECTED_CASES: [string, string][] = [
   ["<pre>sin(30) shu</pre> shu", "<pre>sin(30) shu</pre> шу"],
   ["{count} ta {item}", "{count} та {item}"],
   ["Narxi: 30 kun, {stars} ⭐", "Нархи: 30 кун, {stars} ⭐"],
+  ["QQS bilan summa", "ҚҚС билан сумма"], // Uzbek acronym, not an ISO code
+  ["QQSsiz summa", "ҚҚСсиз сумма"],
+  ["Masalan: 12*(3+4) yoki 100 km to mi", "Масалан: 12*(3+4) ёки 100 km to mi"], // plain-text input example stays Latin
+  ["1 000 000 UZS to USD ga", "1 000 000 UZS to USD га"],
 ];
 
 describe("latinToCyrillic: words", () => {
