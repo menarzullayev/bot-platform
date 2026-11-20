@@ -48,3 +48,26 @@ export async function touchUser(db: Db, botId: string, userId: number, now: numb
     .bind(botId, userId, now)
     .run();
 }
+
+export async function setBotEnabled(db: Db, id: string, enabled: boolean): Promise<void> {
+  await db.prepare("UPDATE bots SET enabled = ? WHERE id = ?").bind(enabled ? 1 : 0, id).run();
+}
+
+export async function countUsersPerBot(db: Db): Promise<Record<string, number>> {
+  const r = await db.prepare("SELECT bot_id, COUNT(*) AS n FROM bot_users GROUP BY bot_id").all<{
+    bot_id: string;
+    n: number;
+  }>();
+  const out: Record<string, number> = {};
+  for (const row of r.results) out[row.bot_id] = row.n;
+  return out;
+}
+
+export async function listEnabledBotConfigs(
+  db: Db,
+): Promise<Pick<BotRow, "id" | "template" | "config">[]> {
+  const r = await db
+    .prepare("SELECT id, template, config FROM bots WHERE enabled = 1 ORDER BY created_at")
+    .all<Pick<BotRow, "id" | "template" | "config">>();
+  return r.results;
+}

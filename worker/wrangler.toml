@@ -8,6 +8,11 @@ binding = "DB"
 database_name = "bots-db"
 # `wrangler d1 create bots-db` chiqargan ID ni shu yerga yozing
 database_id = "6d4f369a-0081-464f-a64d-bbfda716ed9b"
+migrations_dir = "migrations"
+
+# Hourly: calls scheduled() of every enabled bot's template (the template decides what to do).
+[triggers]
+crons = ["0 * * * *"]
 
 [observability]
 enabled = true

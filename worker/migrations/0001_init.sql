@@ -1,3 +1,4 @@
+-- Platform core: registered bots and the users they have seen.
 CREATE TABLE IF NOT EXISTS bots (
   id         TEXT PRIMARY KEY,
   token_enc  TEXT NOT NULL,

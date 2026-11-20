@@ -8,8 +8,8 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:local": "wrangler d1 execute bots-db --local --file=./schema.sql",
-    "db:remote": "wrangler d1 execute bots-db --remote --file=./schema.sql"
+    "db:migrate:local": "wrangler d1 migrations apply bots-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply bots-db --remote"
   },
   "dependencies": {
     "grammy": "^1.46.0"

@@ -1,6 +1,7 @@
 import { Bot, InlineKeyboard } from "grammy";
 import type { Context } from "grammy";
 import { touchUser, type Db } from "../db";
+import type { Template } from "./index";
 
 export interface ForceSubConfig {
   /** "@kanal_nomi" yoki raqamli chat id. Eng ko'pi 5 ta (Worker subrequest limiti uchun). */
@@ -83,3 +84,11 @@ export function installForceSub(bot: Bot, botId: string, cfg: ForceSubConfig, db
     }
   });
 }
+
+export const forcesubTemplate: Template<ForceSubConfig> = {
+  name: "forcesub",
+  parseConfig: parseForceSubConfig,
+  install(bot, ctx) {
+    installForceSub(bot, ctx.botId, ctx.config, ctx.db, ctx.now);
+  },
+};
