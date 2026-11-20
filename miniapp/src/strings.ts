@@ -203,9 +203,10 @@ const ROWS = {
   // ---- settings ----
   set_language: ["Til", "Язык", "Language", "Dil", "اللغة", "Idioma"],
   set_angle: ["Burchak birligi", "Единица угла", "Angle unit", "Açı birimi", "وحدة الزاوية", "Unidad de ángulo"],
-  set_deg: ["Gradus", "Градусы", "Degrees", "Derece", "درجات", "Grados"],
-  set_rad: ["Radian", "Радианы", "Radians", "Radyan", "راديان", "Radianes"],
-  set_digits: ["Kasr xonalari", "Знаков после запятой", "Decimal places", "Ondalık basamak", "الخانات العشرية", "Decimales"],
+  // short on purpose: the two angle segments share half of a 264px-wide row
+  set_deg: ["Grad", "Град", "Deg", "Der", "درجة", "Deg"],
+  set_rad: ["Rad", "Рад", "Rad", "Rad", "راد", "Rad"],
+  set_digits: ["Kasr xonalari", "Дробных знаков", "Decimal places", "Ondalık basamak", "الخانات العشرية", "Decimales"],
   set_history: ["Tarixni sinxronlash", "Синхронизация истории", "Sync history", "Geçmişi eşitle", "مزامنة السجل", "Sincronizar historial"],
   set_history_hint: [
     "Yoqilsa, hisob-kitoblar tarixi serverda saqlanadi va boshqa qurilmalarda ham koʻrinadi.",

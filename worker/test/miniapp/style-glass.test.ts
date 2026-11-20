@@ -145,6 +145,11 @@ describe("glass: adaptation-axis CSS (DEC-007)", () => {
     for (const s of SOLID) expect(r).toContain(s);
   });
 
+  it("the glass blur itself is scaled by --fx (lite 0 = blur 0), not only switched off by the solid blocks", () => {
+    const m = /--bf:\s*blur\(calc\(12px \* var\(--fx\)\)\)/.exec(css);
+    expect(m, "--bf must be blur(calc(12px * var(--fx))) ...").not.toBeNull();
+  });
+
   it("lite auto under prefers-reduced-transparency / reduced-motion and on low-memory devices: the same solid mode", () => {
     const m = css.indexOf("@media (prefers-reduced-transparency: reduce)");
     expect(m).toBeGreaterThanOrEqual(0);
@@ -173,7 +178,7 @@ describe("glass: adaptation-axis CSS (DEC-007)", () => {
   });
 
   it("effects: blur radius <= 14px, only on a few large containers, never on keys, chips, fields or the tab bar", () => {
-    const radii = [...css.matchAll(/blur\((\d+(?:\.\d+)?)px/g)].map((m) => Number(m[1]));
+    const radii = [...css.matchAll(/blur\((?:calc\()?(\d+(?:\.\d+)?)px/g)].map((m) => Number(m[1]));
     expect(radii.length).toBeGreaterThan(0);
     for (const px of radii) expect(px).toBeLessThanOrEqual(14);
     const blurRules = [...CSS.matchAll(/([^{}]+)\{[^}]*backdrop-filter:\s*var\(--bf\)[^}]*\}/g)].map((m) => m[1]);

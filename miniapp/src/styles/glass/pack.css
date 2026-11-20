@@ -42,7 +42,7 @@
 
 :root { --radius: 22px; --r-s: 12px; --r-m: 16px;
   /* effect variables: glass by default, opaque in solid mode (below) */
-  --fill: var(--glass); --fill-2: var(--glass-2); --fill-3: var(--glass-3); --bf: blur(12px) saturate(1.4); --grad: linear-gradient(135deg, var(--accent), var(--accent-2));
+  --fill: var(--glass); --fill-2: var(--glass-2); --fill-3: var(--glass-3); --bf: blur(calc(12px * var(--fx))) saturate(calc(1 + 0.4 * var(--fx))); --grad: linear-gradient(135deg, var(--accent), var(--accent-2));
   --mesh: radial-gradient(55% 45% at 10% 6%, var(--m1) 0, transparent 65%), radial-gradient(50% 45% at 94% 14%, var(--m2) 0, transparent 65%), radial-gradient(60% 55% at 78% 98%, var(--m3) 0, transparent 65%), radial-gradient(45% 40% at 6% 90%, var(--m4) 0, transparent 65%); }
 
 /* ---------- solid mode: no transparency, no blur, no mesh, no shadows ---------- */

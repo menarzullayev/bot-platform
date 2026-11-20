@@ -616,11 +616,10 @@ for (const [packName, entry] of PACKS) {
       expect(css).toContain("var(--bw)");
       expect(css).toContain('[data-contrast="high"]');
       // effects must scale with --fx: no raw blur() / backdrop-filter radius
-      // (exempt: @supports feature probes, and a custom property that holds a whole filter, e.g. glass's `--bf`, which the
-      // pack switches off through --fx elsewhere; the pack's own style-<id>.test.ts proves that switch)
+      // (the only exemption: @supports feature probes; a custom property holding a filter, like glass's `--bf`, must scale too)
       for (const m of css.matchAll(/blur\(([^)]*\)?[^)]*)\)/g)) {
         const line = css.slice(css.lastIndexOf("\n", m.index) + 1, m.index + m[0].length);
-        if (/@supports/.test(line) || /--[\w-]+\s*:[^;]*$/.test(line.slice(0, line.length - m[0].length))) continue;
+        if (/@supports/.test(line)) continue;
         expect(m[1], `blur(${m[1]})`).toContain("--fx");
       }
       // a pack must not hard-code the properties that belong to core geometry

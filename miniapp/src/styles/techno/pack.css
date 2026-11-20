@@ -177,6 +177,9 @@ body { font-family: var(--mono); background-image: linear-gradient(var(--grid) 1
 .step-body { font-size: calc(12.5px * var(--fs)); line-height: 1.5; overflow-wrap: anywhere; }
 .step-body code, .step-note code { font: 600 calc(12px * var(--fs)) var(--mono); background: var(--bg); border: 1px solid var(--line); padding: 1px 5px; }
 .teaser-blur { filter: blur(calc(7px * var(--fx))); opacity: calc(0.8 - 0.45 * (1 - var(--fx))); }
+/* the lock text sits on the blurred preview: a page-coloured scrim keeps it readable (AA), the preview still shows through */
+.pro-lock { background: color-mix(in srgb, var(--bg) 88%, transparent); border-radius: 0; }
+:root[data-contrast="high"] .pro-lock { background: var(--bg); }
 .pro-lock-icon { width: 44px; height: 44px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); box-shadow: 0 0 calc(16px * var(--glow)) color-mix(in srgb, var(--accent) calc(40% * var(--glow)), transparent); }
 .pro-lock-title { font-size: calc(15px * var(--fs)); font-weight: 800; line-height: 1.2; text-transform: uppercase; letter-spacing: var(--ls); }
 .pro-lock-text { color: var(--ink-2); font-size: calc(12.5px * var(--fs)); max-width: 30ch; }

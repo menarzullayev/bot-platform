@@ -188,6 +188,9 @@
 .step-body code, .step-note code { font: 700 calc(13px * var(--fs)) var(--mono); background: var(--bg); border: var(--bw) solid var(--edge); border-radius: 6px; padding: 1px 6px; }
 .teaser { border-radius: var(--radius); }
 .teaser-blur { filter: blur(calc(7px * var(--fx))); opacity: calc(0.8 - 0.45 * (1 - var(--fx))); }
+/* the lock text sits on the blurred preview: a page-coloured scrim keeps it readable (AA), the preview still shows through */
+.pro-lock { background: color-mix(in srgb, var(--bg) 88%, transparent); border-radius: var(--radius); }
+:root[data-contrast="high"] .pro-lock { background: var(--bg); }
 .pro-lock-icon { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--face-accent); color: var(--on-accent); border: var(--bw) solid var(--accent-edge); box-shadow: var(--raise-s); }
 .pro-lock-title { font-size: calc(17px * var(--fs)); font-weight: 800; line-height: 1.2; }
 .pro-lock-text { color: var(--ink-2); font-size: calc(13px * var(--fs)); max-width: 30ch; }

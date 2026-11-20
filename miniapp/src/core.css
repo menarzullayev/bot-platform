@@ -77,7 +77,7 @@ button { cursor: pointer; }
 }
 
 /* ---------- shell ---------- */
-.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding-top: var(--sat); padding-inline: var(--sal) var(--sar); max-width: 560px; margin-inline: auto; overflow: hidden; }
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding-top: var(--sat); padding-inline: var(--sal) var(--sar); max-width: 560px; margin-inline: auto; }
 .boot { margin: auto; display: flex; flex-direction: column; align-items: center; gap: var(--s3); color: var(--ink-2); font-weight: 600; letter-spacing: 0.04em; text-align: center; }
 .slot-banner { flex: none; margin: var(--s1) var(--pad) 0; }
 .slot-nav { flex: none; padding-bottom: var(--sab); }
@@ -99,14 +99,17 @@ button { cursor: pointer; }
 
 /* ---------- chooser: wrapping chip grid when there is room, one compact select when the window is short ---------- */
 [data-ui="chooser"] { flex: none; min-width: 0; }
-[data-ui="chooser"] [data-part="grid"] { display: none; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+[data-ui="chooser"] [data-part="grid"] { display: none; flex-wrap: wrap; gap: 6px; }
+/* a chip is at least 76px wide and never narrower than its longest word, so a word is never broken in the middle */
+[data-ui="chooser"] [data-part="grid"] > [role="radio"] { flex: 1 1 76px; min-width: min-content; overflow-wrap: normal; word-break: normal; hyphens: manual; }
 [data-ui="chooser"] [data-part="select"] { position: relative; }
 @media (min-height: 720px) {
-  [data-ui="chooser"] [data-part="grid"] { display: grid; }
+  [data-ui="chooser"] [data-part="grid"] { display: flex; }
   [data-ui="chooser"] [data-part="select"] { display: none; }
 }
 @media (min-height: 560px) {
-  [data-ui="chooser"][data-roomy] [data-part="grid"] { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+  [data-ui="chooser"][data-roomy] [data-part="grid"] { display: flex; }
+  [data-ui="chooser"][data-roomy] [data-part="grid"] > [role="radio"] { flex-basis: 92px; }
   [data-ui="chooser"][data-roomy] [data-part="select"] { display: none; }
 }
 
@@ -114,9 +117,17 @@ button { cursor: pointer; }
 [data-ui="card"], [data-ui="result-card"] { display: flex; flex-direction: column; min-width: 0; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
 [data-ui="segmented"] { display: flex; min-width: 0; }
-[data-ui="segmented"] [role="radio"] { flex: 1 1 0; min-width: 0; }
-[data-ui="result-card"] [data-part="cells"] { display: grid; grid-template-columns: 1fr 1fr; gap: 6px var(--s3); align-items: center; }
-[data-ui="result-card"] [data-part="cells"] > * { display: flex; flex-direction: column; min-width: 0; }
+[data-ui="segmented"] [role="radio"] { flex: 1 1 0; min-width: 0; overflow-wrap: normal; word-break: normal; hyphens: manual; }
+@media (max-width: 300px) { [data-ui="segmented"] [role="radio"] { font-size: calc(11px * var(--fs)); letter-spacing: -0.02em; padding-inline: 2px; } }
+[data-ui="result-card"] [data-part="cells"] { display: flex; flex-wrap: wrap; gap: 6px var(--s3); align-items: center; }
+/* two cells per row; a cell whose value is wider than half the card takes its own row (the value stays on one line) */
+[data-ui="result-card"] [data-part="cells"] > * { display: flex; flex-direction: column; flex: 1 1 calc(50% - var(--s3) / 2); min-width: min-content; max-width: 100%; }
+[data-ui="result-card"] [data-part="cells"] > * > :last-child { overflow-wrap: break-word; word-break: normal; }
+@media (max-width: 300px) {
+  [data-ui="result-card"] [data-part="cells"] > * > :last-child { font-size: calc(11.5px * var(--fs)); }
+  [data-ui="result-card"] [data-part="cells"] > :not([data-part]) > :first-child { font-size: calc(11px * var(--fs)); }
+  [data-ui="result-card"][data-variant="value"] [data-part="main"] { font-size: calc(min(7.2vw, 24px) * var(--fs)); }
+}
 [data-ui="result-card"] [data-part="actions"]:empty, [data-ui="result-card"] [data-part="cells"]:empty { display: none; }
 [data-ui="result-card"] [data-part="main"] { min-width: 0; overflow-wrap: anywhere; }
 [data-ui="field"] { display: flex; flex-direction: column; min-width: 0; }
@@ -221,11 +232,17 @@ button { cursor: pointer; }
 .fgrid .inl { display: flex; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 4px var(--gap); }
 .fgrid .inl > [data-ui="segmented"] { flex: 1 1 140px; }
 .page.finance > .sched { display: none; }
+/* short windows: the schedule opens in a sheet (button). Tall windows: it is a panel inside the page that takes the rest of
+   the height and scrolls on its own (the page, the form and the tab bar stay put); taller window = more rows. */
 @media (min-height: 760px) {
-  .page.finance { overflow: hidden; }
-  .page.finance > .sched:not(:empty) { display: flex; flex: 1 1 0; min-height: 96px; }
-  .sched [data-ui="table"] { flex: 1; min-height: 0; max-height: none; }
+  .page.finance > .sched:not(:empty) { display: flex; flex: 1 1 0; min-height: 120px; }
+  .sched [data-ui="table"] { flex: 1; min-height: 0; max-height: none; padding-bottom: 14px; scroll-padding-block: 0 14px; -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); }
   .sched-btn { display: none !important; }
+}
+/* short windows: finance spends less on gaps so the form + result fit with room to spare */
+@media (max-height: 520px) {
+  .page.finance { gap: 4px; padding-top: var(--s1); }
+  .page.finance .fgrid { gap: 2px var(--gap); }
 }
 
 /* ---------- settings ---------- */
@@ -235,6 +252,7 @@ button { cursor: pointer; }
 .plan-line { display: flex; align-items: center; gap: var(--s2); flex: 1 1 0; min-width: 0; }
 .plan-line > [data-ui="button"] { flex: 1 1 auto; }
 .set-row.plan > [data-part="label"] { display: none; }
+@media (max-width: 300px) { .set-row.appearance .app-style { display: none; } }
 @media (max-height: 640px) { .set-row.hist [data-part="label"] { display: none; } .set-row.hist > [data-ui="button"] { width: 36px; padding: 0; } }
 @media (min-height: 560px) { .set-row.lang > [data-ui="chooser"] { flex-basis: 100%; } .set-row.lang { padding-bottom: var(--s2); } }
 @media (min-height: 700px) { .set-row.hist [data-ui="text"] { display: block; } .set-row.plan > [data-part="label"] { display: flex; } .set-row.plan { flex-wrap: nowrap; } }

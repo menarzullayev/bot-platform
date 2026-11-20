@@ -49,6 +49,21 @@ export function createSettingsPage(ctx: PageCtx, onTheme: () => void): Page {
     });
   }
 
+  // The style name next to the label ("Appearance · Glass") is a separate span that very narrow windows hide
+  // (core.css), so the label is never cut with an ellipsis; the picker inside the sheet shows the name anyway.
+  function appearanceButton(styleName: string): HTMLElement {
+    const btn = ctx.kit.Button({
+      variant: "secondary",
+      block: true,
+      icon: "settings",
+      label: t("set_appearance"),
+      ariaLabel: t("set_appearance"),
+      onClick: () => openAppearance(),
+    });
+    if (styleName) btn.el.appendChild(h("span", { class: "app-style", text: `· ${styleName}` }));
+    return btn.el;
+  }
+
   function render(): void {
     clear(el);
     const kit = ctx.kit;
@@ -146,17 +161,7 @@ export function createSettingsPage(ctx: PageCtx, onTheme: () => void): Page {
         ).el,
         plan.el,
         // style picker and the four adaptation axes live in a bottom sheet so this page never scrolls
-        kit.Row(
-          { class: "appearance" },
-          kit.Button({
-            variant: "secondary",
-            block: true,
-            icon: "settings",
-            label: styleName ? `${t("set_appearance")} · ${styleName}` : t("set_appearance"),
-            ariaLabel: t("set_appearance"),
-            onClick: () => openAppearance(),
-          }).el,
-        ).el,
+        kit.Row({ class: "appearance" }, appearanceButton(styleName)).el,
       ).el,
     );
     if (state.mode === "demo") el.appendChild(kit.Text({ kind: "hint", align: "center", text: t("set_demo_note") }).el);
