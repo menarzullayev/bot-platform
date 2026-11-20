@@ -5,3 +5,8 @@ export * from "./lexer";
 export * from "./parser";
 export * from "./evaluate";
 export * from "./format";
+export * from "./units";
+export * from "./currency";
+export * from "./convert";
+export * from "./finance";
+export * from "./symbolic";
