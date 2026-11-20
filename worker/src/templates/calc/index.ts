@@ -60,6 +60,7 @@ export function installCalc(bot: Bot, ctx: TemplateCtx<CalcConfig>): void {
     now: ctx.now,
     proStars: ctx.config.proStars,
     defaultLang: ctx.appConfig.defaultLang,
+    supportContact: ctx.config.supportContact,
   });
   installWidgetQuery(bot, svc);
   installCommands(bot, svc);

@@ -22,6 +22,8 @@ export interface ProDeps {
   proStars: number;
   /** Fallback language when the user has no stored preference and language_code is unsupported. */
   defaultLang: Lang;
+  /** Public support contact (@username, https link or e-mail) shown in /paysupport. */
+  supportContact?: string;
 }
 
 const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -207,6 +209,7 @@ export function installPro(bot: Bot, d: ProDeps): void {
     } catch (e) {
       log("warn", "pro: paysupport payments lookup failed", { botId: d.botId, error: errInfo(e) });
     }
+    if (d.supportContact) text += "\n\n💬 " + escapeHtml(d.supportContact);
     await ctx.reply(text, { parse_mode: "HTML" });
   });
 }

@@ -25,7 +25,7 @@ let updateId = 1000;
 
 /** A Bot with installPro and a recording transport: no network, no real token. */
 export function harness(
-  opts: { db?: FakeDb; botId?: string; proStars?: number; failMethods?: string[]; clock?: { now: number } } = {},
+  opts: { db?: FakeDb; supportContact?: string; botId?: string; proStars?: number; failMethods?: string[]; clock?: { now: number } } = {},
 ): Harness {
   const db = opts.db ?? new FakeDb();
   const clock = opts.clock ?? { now: NOW };
@@ -52,6 +52,7 @@ export function harness(
     now: () => clock.now,
     proStars: opts.proStars ?? 150,
     defaultLang: "en",
+    supportContact: opts.supportContact,
   };
   installPro(bot, deps);
   return {

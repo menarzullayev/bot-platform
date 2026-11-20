@@ -217,6 +217,14 @@ describe("/paysupport", () => {
     expect(texts(h)).toEqual([en.paysupport]);
   });
 
+  it("appends the configured support contact (HTML-escaped)", async () => {
+    const h = harness({ supportContact: "@support<b>" });
+    await h.send(command("/paysupport"));
+    const t = texts(h)[0];
+    expect(t).toContain(en.paysupport);
+    expect(t).toContain("💬 @support&lt;b&gt;");
+  });
+
   it("lists the last 3 charge ids of this user only", async () => {
     const h = harness();
     for (let i = 1; i <= 4; i++) {
