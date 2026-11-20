@@ -19,6 +19,7 @@ import {
 } from "../pro";
 import { RateLimiter } from "../ratelimit";
 import { resolveAppConfig, type PlatformDeps } from "../templates";
+import { CONTRAST_VALUES, DENSITY_VALUES, FS_VALUES, LITE_VALUES, STYLE_IDS, pickEnum } from "../templates/calc/style";
 import { parseAuthHeader, verifyInitData, type TgUser } from "./auth";
 import { HttpError, errorResponse, json, readJson } from "./http";
 import { validate, type Spec } from "./schema";
@@ -45,6 +46,11 @@ const SETTINGS_SPEC: Spec = {
   digits: { kind: "int", min: DIGITS_MIN, max: DIGITS_MAX },
   keep_history: { kind: "bool" },
   lang: { kind: "enum", values: LANGS_LIST },
+  style: { kind: "enum", values: STYLE_IDS },
+  contrast: { kind: "enum", values: CONTRAST_VALUES },
+  density: { kind: "enum", values: DENSITY_VALUES },
+  lite: { kind: "enum", values: LITE_VALUES },
+  fs: { kind: "enum", values: FS_VALUES },
 };
 const HISTORY_SPEC: Spec = {
   expr: { kind: "string", min: 1, max: EXPR_MAX },
@@ -80,6 +86,11 @@ interface SettingsRow {
   digits: number;
   keep_history: number;
   pro_until: number;
+  style: string | null;
+  contrast: string | null;
+  density: string | null;
+  lite: string | null;
+  fs: string | null;
 }
 
 interface Settings {
@@ -87,13 +98,30 @@ interface Settings {
   angle: "deg" | "rad";
   digits: number;
   keep_history: boolean;
+  /** null = never saved; the client applies its default. */
+  style: (typeof STYLE_IDS)[number] | null;
+  contrast: (typeof CONTRAST_VALUES)[number] | null;
+  density: (typeof DENSITY_VALUES)[number] | null;
+  lite: (typeof LITE_VALUES)[number] | null;
+  fs: (typeof FS_VALUES)[number] | null;
 }
 
-const DEFAULTS: SettingsRow = { lang: null, angle: "deg", digits: 12, keep_history: 0, pro_until: 0 };
+const DEFAULTS: SettingsRow = {
+  lang: null,
+  angle: "deg",
+  digits: 12,
+  keep_history: 0,
+  pro_until: 0,
+  style: null,
+  contrast: null,
+  density: null,
+  lite: null,
+  fs: null,
+};
 
 async function loadUser(db: Db, botId: string, userId: number): Promise<SettingsRow> {
   const row = await db
-    .prepare("SELECT lang, angle, digits, keep_history, pro_until FROM users WHERE bot_id = ? AND user_id = ?")
+    .prepare("SELECT lang, angle, digits, keep_history, pro_until, style, contrast, density, lite, fs FROM users WHERE bot_id = ? AND user_id = ?")
     .bind(botId, userId)
     .first<SettingsRow>();
   return row ?? DEFAULTS;
@@ -105,6 +133,25 @@ function toSettings(r: SettingsRow): Settings {
     angle: r.angle === "rad" ? "rad" : "deg",
     digits: Number.isInteger(r.digits) ? Math.min(DIGITS_MAX, Math.max(DIGITS_MIN, r.digits)) : 12,
     keep_history: r.keep_history === 1,
+    style: pickEnum(STYLE_IDS, r.style),
+    contrast: pickEnum(CONTRAST_VALUES, r.contrast),
+    density: pickEnum(DENSITY_VALUES, r.density),
+    lite: pickEnum(LITE_VALUES, r.lite),
+    fs: pickEnum(FS_VALUES, r.fs),
+  };
+}
+
+/** The settings object of the /me and /settings responses: always these eight keys. */
+function settingsJson(s: Settings) {
+  return {
+    angle: s.angle,
+    digits: s.digits,
+    keep_history: s.keep_history,
+    style: s.style,
+    contrast: s.contrast,
+    density: s.density,
+    lite: s.lite,
+    fs: s.fs,
   };
 }
 
@@ -276,7 +323,7 @@ async function route(req: Request, env: Env, deps: PlatformDeps): Promise<Respon
         },
         lang,
         pro: { is_pro: isPro, pro_until: row.pro_until },
-        settings: { angle: s.angle, digits: s.digits, keep_history: s.keep_history },
+        settings: settingsJson(s),
         limits: { history: historyLimit(isPro) },
         pro_stars: botProConfig(auth.bot).proStars,
       });
@@ -291,15 +338,35 @@ async function route(req: Request, env: Env, deps: PlatformDeps): Promise<Respon
         angle: (v.value.angle as "deg" | "rad" | undefined) ?? cur.angle,
         digits: (v.value.digits as number | undefined) ?? cur.digits,
         keep_history: (v.value.keep_history as boolean | undefined) ?? cur.keep_history,
+        style: (v.value.style as Settings["style"] | undefined) ?? cur.style,
+        contrast: (v.value.contrast as Settings["contrast"] | undefined) ?? cur.contrast,
+        density: (v.value.density as Settings["density"] | undefined) ?? cur.density,
+        lite: (v.value.lite as Settings["lite"] | undefined) ?? cur.lite,
+        fs: (v.value.fs as Settings["fs"] | undefined) ?? cur.fs,
       };
       await db
         .prepare(
-          "INSERT INTO users (bot_id, user_id, lang, angle, digits, keep_history, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
-            "ON CONFLICT(bot_id, user_id) DO UPDATE SET lang = excluded.lang, angle = excluded.angle, digits = excluded.digits, keep_history = excluded.keep_history, updated_at = excluded.updated_at",
+          "INSERT INTO users (bot_id, user_id, lang, angle, digits, keep_history, style, contrast, density, lite, fs, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "ON CONFLICT(bot_id, user_id) DO UPDATE SET lang = excluded.lang, angle = excluded.angle, digits = excluded.digits, keep_history = excluded.keep_history, " +
+            "style = excluded.style, contrast = excluded.contrast, density = excluded.density, lite = excluded.lite, fs = excluded.fs, updated_at = excluded.updated_at",
         )
-        .bind(botId, auth.user.id, next.lang, next.angle, next.digits, next.keep_history ? 1 : 0, now, now)
+        .bind(
+          botId,
+          auth.user.id,
+          next.lang,
+          next.angle,
+          next.digits,
+          next.keep_history ? 1 : 0,
+          next.style,
+          next.contrast,
+          next.density,
+          next.lite,
+          next.fs,
+          now,
+          now,
+        )
         .run();
-      return json({ settings: { angle: next.angle, digits: next.digits, keep_history: next.keep_history }, lang: next.lang });
+      return json({ settings: settingsJson(next), lang: next.lang });
     }
 
     case "history": {

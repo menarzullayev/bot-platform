@@ -5,11 +5,12 @@ import { compileFast } from "../../../../worker/src/calc/symbolic/numeric";
 import { parseExpression } from "../../../../worker/src/calc/symbolic/solve";
 import { bounds, defaultView, fitView, formatTick, niceStep, panBy, samplePlot, tableRows, ticks, toScreen, toWorld, traceAt, zoomAt, type Fn, type Plot, type View } from "../../lib/plot";
 import { parseNumber } from "../../lib/num";
-import { clear, h, icon } from "../dom";
+import { clear, h } from "../dom";
+import { openSheet } from "../overlays";
 import { lsGet, lsSet, t } from "../state";
 import { haptic } from "../tg";
-import { openSheet } from "../widgets";
-import type { Page } from "./types";
+import type { FieldHandle } from "../../contract/types";
+import type { Page, PageCtx } from "./types";
 
 const COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b"];
 const MAX_FUNCS = 4;
@@ -37,12 +38,12 @@ export function compileRow(text: string): Row {
   }
 }
 
-export function createGraphPage(): Page {
+export function createGraphPage(ctx: PageCtx): Page {
   const el = h("section", { class: "page graph", attrs: { "aria-label": "graph" } });
   const saved = lsGet<string[]>("graph", ["sin(x)"]);
   const rows: Row[] = (saved.length ? saved.slice(0, MAX_FUNCS) : ["sin(x)"]).map((s) => compileRow(String(s).slice(0, 200)));
   let canvas!: HTMLCanvasElement;
-  let ctx: CanvasRenderingContext2D | null = null;
+  let g2d: CanvasRenderingContext2D | null = null;
   let view: View | null = null;
   let w = 0;
   let hgt = 0;
@@ -61,7 +62,7 @@ export function createGraphPage(): Page {
   function readColors(): void {
     const cs = getComputedStyle(el);
     const get = (n: string, d: string): string => cs.getPropertyValue(n).trim() || d;
-    colors = { bg: get("--bg", "#ffffff"), grid: get("--line", "#00000014"), axis: get("--hint", "#888888"), text: get("--hint", "#888888") };
+    colors = { bg: get("--bg", "#ffffff"), grid: get("--line", "#00000014"), axis: get("--ink-2", "#888888"), text: get("--ink-2", "#888888") };
   }
 
   function resize(): void {
@@ -77,7 +78,7 @@ export function createGraphPage(): Page {
     hgt = nh;
     canvas.width = Math.round(nw * dpr);
     canvas.height = Math.round(nh * dpr);
-    ctx = canvas.getContext("2d");
+    g2d = canvas.getContext("2d");
     if (first) view = fitView(activeFns(), w, hgt);
     invalidate();
   }
@@ -97,8 +98,8 @@ export function createGraphPage(): Page {
   }
 
   function draw(): void {
-    if (!ctx || !view || w === 0) return;
-    const c = ctx;
+    if (!g2d || !view || w === 0) return;
+    const c = g2d;
     const v = view;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.fillStyle = colors.bg;
@@ -278,92 +279,74 @@ export function createGraphPage(): Page {
     const idx = Math.max(0, rows.findIndex((r) => r.fn));
     const row = rows[idx];
     openSheet(t("graph_table"), (body) => {
+      const kit = ctx.kit;
       let from = "-5";
       let step = "1";
-      const fromIn = h("input", { class: "field ltr", attrs: { type: "text", inputmode: "decimal", dir: "ltr", "aria-label": t("graph_table_from") } });
-      const stepIn = h("input", { class: "field ltr", attrs: { type: "text", inputmode: "decimal", dir: "ltr", "aria-label": t("graph_table_step") } });
-      fromIn.value = from;
-      stepIn.value = step;
-      const table = h("table", { class: "tbl ltr" });
+      const fromIn = kit.Field({ label: t("graph_table_from"), ariaLabel: t("graph_table_from"), inputMode: "decimal", value: from, onInput: (v) => { from = v; paint(); } });
+      const stepIn = kit.Field({ label: t("graph_table_step"), ariaLabel: t("graph_table_step"), inputMode: "decimal", value: step, onInput: (v) => { step = v; paint(); } });
+      const table = kit.Table({ columns: ["x", "f(x)"] });
       const paint = (): void => {
-        clear(table);
-        table.appendChild(h("thead", null, h("tr", null, h("th", { text: "x" }), h("th", { text: "f(x)" }))));
-        const f = parseNumber(from)?.toNumber();
-        const s = parseNumber(step)?.toNumber();
-        const body2 = h("tbody");
-        if (row?.fn && f !== undefined && s !== undefined && s !== 0) {
-          for (const r of tableRows(row.fn, f, s, 25)) body2.appendChild(h("tr", null, h("td", { text: String(r.x) }), h("td", { text: r.y === null ? "—" : String(r.y) })));
+        const f0 = parseNumber(from)?.toNumber();
+        const s0 = parseNumber(step)?.toNumber();
+        const out: string[][] = [];
+        if (row?.fn && f0 !== undefined && s0 !== undefined && s0 !== 0) {
+          for (const r of tableRows(row.fn, f0, s0, 25)) out.push([String(r.x), r.y === null ? "—" : String(r.y)]);
         }
-        table.appendChild(body2);
+        table.setRows(out);
       };
-      fromIn.addEventListener("input", () => {
-        from = fromIn.value;
-        paint();
-      });
-      stepIn.addEventListener("input", () => {
-        step = stepIn.value;
-        paint();
-      });
-      body.append(
-        h("div", { class: "hint ltr", text: row ? `f(x) = ${stripLhs(row.text)}` : "" }),
-        h("div", { class: "grid2" }, h("label", { class: "lbl" }, t("graph_table_from"), fromIn), h("label", { class: "lbl" }, t("graph_table_step"), stepIn)),
-        h("div", { class: "tbl-wrap" }, table),
-      );
+      body.append(kit.Text({ kind: "hint", text: row ? `f(x) = ${stripLhs(row.text)}` : "", ltr: true }).el, h("div", { class: "grid2" }, fromIn.el, stepIn.el), table.el);
       paint();
     });
   }
 
   function render(): void {
     clear(el);
+    const kit = ctx.kit;
     const list = h("div", { class: "fn-list" });
     const buildList = (): void => {
       clear(list);
       rows.forEach((r, i) => {
-        const input = h("input", {
-          class: "field fn-input ltr" + (r.valid ? "" : " bad"),
-          attrs: { type: "text", dir: "ltr", autocomplete: "off", autocapitalize: "off", spellcheck: false, placeholder: t("graph_fx_ph"), "aria-label": `f${i + 1}`, maxlength: 200 },
-          on: {
-            input: () => {
-              rows[i] = compileRow(input.value);
-              input.classList.toggle("bad", !rows[i].valid);
-              input.title = rows[i].valid ? "" : t("graph_invalid");
-              persist();
-              trace = null;
-              invalidate();
-            },
+        const field: FieldHandle = kit.Field({
+          ariaLabel: `f${i + 1}`,
+          placeholder: t("graph_fx_ph"),
+          maxLength: 200,
+          value: r.text,
+          onInput: (v) => {
+            rows[i] = compileRow(v);
+            field.setInvalid(!rows[i].valid, t("graph_invalid"));
+            persist();
+            trace = null;
+            invalidate();
           },
         });
-        input.value = r.text;
+        field.input.classList.add("fn-input");
+        field.setInvalid(!r.valid, t("graph_invalid"));
         list.appendChild(
           h(
             "div",
             { class: "fn-row" },
             h("span", { class: "dot", style: { "--c": COLORS[i % COLORS.length] } }),
-            input,
+            field.el,
             rows.length > 1
-              ? h(
-                  "button",
-                  {
-                    class: "icon-btn",
-                    attrs: { type: "button", "aria-label": t("graph_remove") },
-                    on: {
-                      click: () => {
-                        rows.splice(i, 1);
-                        persist();
-                        buildList();
-                        invalidate();
-                      },
-                    },
+              ? kit.IconButton({
+                  icon: "close",
+                  label: t("graph_remove"),
+                  size: 18,
+                  onClick: () => {
+                    rows.splice(i, 1);
+                    persist();
+                    buildList();
+                    invalidate();
                   },
-                  icon("close", 18),
-                )
+                }).el
               : null,
           ),
         );
       });
     };
     buildList();
-    canvas = h("canvas", { class: "plot", attrs: { role: "img", "aria-label": "graph" } });
+    const frame = kit.PlotFrame({ ariaLabel: "graph" });
+    canvas = frame.canvas;
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
@@ -373,13 +356,13 @@ export function createGraphPage(): Page {
     const tools = h(
       "div",
       { class: "graph-tools" },
-      h("button", { class: "btn", attrs: { type: "button" }, on: { click: () => { if (rows.length < MAX_FUNCS) { rows.push(compileRow("")); buildList(); } } } }, icon("plus", 18), t("graph_add")),
-      h("button", { class: "btn", attrs: { type: "button" }, on: { click: openTable } }, icon("table", 18), t("graph_table")),
-      h("button", { class: "btn", attrs: { type: "button" }, on: { click: resetView } }, icon("reset", 18), t("graph_reset")),
+      kit.Button({ icon: "plus", label: t("graph_add"), onClick: () => { if (rows.length < MAX_FUNCS) { rows.push(compileRow("")); buildList(); } } }).el,
+      kit.Button({ icon: "table", label: t("graph_table"), onClick: openTable }).el,
+      kit.Button({ icon: "reset", label: t("graph_reset"), onClick: resetView }).el,
     );
-    el.append(list, h("div", { class: "plot-wrap" }, canvas), h("div", { class: "hint center", text: `${t("graph_hint")} · ${t("graph_note")}` }), tools);
+    el.append(list, frame.el, kit.Text({ kind: "hint", align: "center", text: `${t("graph_hint")} · ${t("graph_note")}` }).el, tools);
     w = 0;
-    ctx = null;
+    g2d = null;
     window.requestAnimationFrame(() => {
       readColors();
       resize();

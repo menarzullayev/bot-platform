@@ -23,6 +23,11 @@ interface UserRowX {
   angle?: string;
   digits?: number;
   keep_history?: number;
+  style?: string | null;
+  contrast?: string | null;
+  density?: string | null;
+  lite?: string | null;
+  fs?: string | null;
   created_at?: number;
   updated_at?: number;
 }
@@ -81,7 +86,7 @@ export class CalcFakeDb extends FakeDb {
         guard();
         self.reads++;
         self.sqlLog.push("R " + sql);
-        if (sql.startsWith("SELECT lang, angle, digits, pro_until, keep_history FROM users")) {
+        if (sql.startsWith("SELECT lang, angle, digits, pro_until, keep_history, style FROM users")) {
           const r = self.userRows.get(`${args[0]}:${args[1]}`);
           if (!r) return null;
           return {
@@ -90,6 +95,7 @@ export class CalcFakeDb extends FakeDb {
             digits: r.digits ?? 12,
             pro_until: r.pro_until,
             keep_history: r.keep_history ?? 0,
+            style: r.style ?? null,
           } as T;
         }
         return inner.first<T>();
@@ -148,7 +154,7 @@ export class CalcFakeDb extends FakeDb {
         if (sql.startsWith("UPDATE users SET lang = NULL, angle = 'deg'")) {
           const [now, bot, user] = args as [number, string, number];
           const r = self.userRows.get(`${bot}:${user}`);
-          if (r) Object.assign(r, { lang: null, angle: "deg", digits: 12, keep_history: 0, updated_at: now });
+          if (r) Object.assign(r, { lang: null, angle: "deg", digits: 12, keep_history: 0, style: null, contrast: null, density: null, lite: null, fs: null, updated_at: now });
           return {};
         }
         if (sql.startsWith("DELETE FROM bot_users WHERE bot_id = ? AND user_id = ?")) {

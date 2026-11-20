@@ -28,7 +28,7 @@ export const ru: Messages = {
     "<b>Гостевой режим</b>\n" +
     "Упомяните <code>@tezcalc_bot</code> и выражение в любом чате, даже если меня туда не добавляли, и я отвечу.\n\n" +
     "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
-    "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
+    "⚙️ /settings · 🎨 /style · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 Выберите язык",
   lang_changed: "✅ Язык изменён: русский.",
@@ -182,4 +182,13 @@ export const ru: Messages = {
   cmd_integrate: "Интеграл по шагам (Pro)",
   cmd_widget: "Виджет-калькулятор",
   cmd_app: "Открыть мини-приложение",
+  style_title: "🎨 <b>Стиль мини-приложения</b>\nВыберите, как выглядит мини-приложение TezCalc.",
+  style_current: "Текущий стиль:",
+  style_tactile: "Объёмный 3D",
+  style_glass: "Стекло",
+  style_fintech: "Финтех",
+  style_techno: "Техно HUD",
+  style_changed: "✅ Стиль сохранён",
+  style_open_app: "📱 Открыть мини-приложение",
+  cmd_style: "Сменить стиль мини-приложения",
 };

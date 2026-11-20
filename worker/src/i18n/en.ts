@@ -29,7 +29,7 @@ export const en: Messages = {
     "<b>Guest mode</b>\n" +
     "Mention <code>@tezcalc_bot</code> followed by an expression in any chat, even one I haven't been added to, and I'll reply with the answer.\n\n" +
     "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
-    "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
+    "⚙️ /settings · 🎨 /style · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 Choose your language",
   lang_changed: "✅ Language changed to English.",
@@ -183,4 +183,13 @@ export const en: Messages = {
   cmd_integrate: "Integral step by step (Pro)",
   cmd_widget: "Calculator widget",
   cmd_app: "Open the Mini App",
+  style_title: "🎨 <b>Mini App style</b>\nPick how the TezCalc Mini App looks.",
+  style_current: "Current style:",
+  style_tactile: "Tactile 3D",
+  style_glass: "Glass",
+  style_fintech: "Fintech",
+  style_techno: "Techno HUD",
+  style_changed: "✅ Style saved",
+  style_open_app: "📱 Open Mini App",
+  cmd_style: "Change the Mini App style",
 };

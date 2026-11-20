@@ -5,6 +5,7 @@ import type { AngleMode } from "../../calc";
 import type { Db } from "../../db";
 import { isLang, type Lang } from "../../i18n";
 import { PRO_LIMITS } from "../../pro";
+import { STYLE_IDS, pickEnum, type StyleId } from "./style";
 
 export const DIGIT_CHOICES = [6, 12, 20] as const;
 export type Digits = (typeof DIGIT_CHOICES)[number];
@@ -18,6 +19,8 @@ export interface UserState {
   keepHistory: boolean;
   /** Unix seconds; 0 = never Pro. */
   proUntil: number;
+  /** null = never chosen (Tactile applies). */
+  style: StyleId | null;
 }
 
 export const DEFAULT_STATE: UserState = {
@@ -27,6 +30,7 @@ export const DEFAULT_STATE: UserState = {
   digits: 12,
   keepHistory: false,
   proUntil: 0,
+  style: null,
 };
 
 interface UserRow {
@@ -35,13 +39,14 @@ interface UserRow {
   digits: number | null;
   pro_until: number | null;
   keep_history: number | null;
+  style: string | null;
 }
 
 export const isDigits = (n: unknown): n is Digits => (DIGIT_CHOICES as readonly unknown[]).includes(n);
 
 export async function getUserState(db: Db, botId: string, userId: number): Promise<UserState> {
   const row = await db
-    .prepare("SELECT lang, angle, digits, pro_until, keep_history FROM users WHERE bot_id = ? AND user_id = ?")
+    .prepare("SELECT lang, angle, digits, pro_until, keep_history, style FROM users WHERE bot_id = ? AND user_id = ?")
     .bind(botId, userId)
     .first<UserRow>();
   if (!row) return { ...DEFAULT_STATE };
@@ -52,11 +57,12 @@ export async function getUserState(db: Db, botId: string, userId: number): Promi
     digits: isDigits(Number(row.digits)) ? (Number(row.digits) as Digits) : 12,
     keepHistory: row.keep_history === 1,
     proUntil: Number(row.pro_until ?? 0),
+    style: pickEnum(STYLE_IDS, row.style),
   };
 }
 
-export type UserField = "lang" | "angle" | "digits" | "keep_history";
-const FIELDS: readonly UserField[] = ["lang", "angle", "digits", "keep_history"];
+export type UserField = "lang" | "angle" | "digits" | "keep_history" | "style";
+const FIELDS: readonly UserField[] = ["lang", "angle", "digits", "keep_history", "style"];
 
 /** Upserts exactly one settings column (whitelisted name, bound value); pro_until is never touched. */
 export async function setUserField(
@@ -123,7 +129,7 @@ export async function clearHistory(db: Db, botId: string, userId: number): Promi
 export async function deleteUserData(db: Db, botId: string, userId: number, now: number): Promise<void> {
   await clearHistory(db, botId, userId);
   await db
-    .prepare("UPDATE users SET lang = NULL, angle = 'deg', digits = 12, keep_history = 0, updated_at = ? WHERE bot_id = ? AND user_id = ?")
+    .prepare("UPDATE users SET lang = NULL, angle = 'deg', digits = 12, keep_history = 0, style = NULL, contrast = NULL, density = NULL, lite = NULL, fs = NULL, updated_at = ? WHERE bot_id = ? AND user_id = ?")
     .bind(now, botId, userId)
     .run();
   await db.prepare("DELETE FROM bot_users WHERE bot_id = ? AND user_id = ?").bind(botId, userId).run();

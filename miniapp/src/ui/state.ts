@@ -4,6 +4,7 @@ import type { FxRates } from "../../../worker/src/calc/currency";
 import type { Api } from "../lib/api";
 import { tr, type Lang, type MessageKey, type MsKey } from "../i18n";
 import type { Prefs } from "../lib/num";
+import { DEFAULT_AXES, DEFAULT_STYLE, type Contrast, type Density, type FontSize, type Lite, type StyleId } from "../contract/model";
 
 export type ThemePref = "auto" | "light" | "dark";
 
@@ -13,6 +14,12 @@ export interface AppState {
   digits: number;
   keepHistory: boolean;
   theme: ThemePref;
+  /** Chosen visual style (the preference; the applied pack may differ while a style is not available). */
+  style: StyleId;
+  contrast: Contrast;
+  density: Density;
+  lite: Lite;
+  fs: FontSize;
   isPro: boolean;
   proUntil: number;
   proStars: number;
@@ -33,6 +40,11 @@ export const state: AppState = {
   digits: 12,
   keepHistory: false,
   theme: "auto",
+  style: DEFAULT_STYLE,
+  contrast: DEFAULT_AXES.contrast,
+  density: DEFAULT_AXES.density,
+  lite: DEFAULT_AXES.lite,
+  fs: DEFAULT_AXES.fs,
   isPro: false,
   proUntil: 0,
   proStars: 150,
@@ -94,8 +106,24 @@ export interface StoredPrefs {
   digits?: number;
   keepHistory?: boolean;
   theme?: ThemePref;
+  style?: StyleId;
+  contrast?: Contrast;
+  density?: Density;
+  lite?: Lite;
+  fs?: FontSize;
 }
 
 export function persistPrefs(): void {
-  lsSet("prefs", { lang: state.lang, angle: state.angle, digits: state.digits, keepHistory: state.keepHistory, theme: state.theme } satisfies StoredPrefs);
+  lsSet("prefs", {
+    lang: state.lang,
+    angle: state.angle,
+    digits: state.digits,
+    keepHistory: state.keepHistory,
+    theme: state.theme,
+    style: state.style,
+    contrast: state.contrast,
+    density: state.density,
+    lite: state.lite,
+    fs: state.fs,
+  } satisfies StoredPrefs);
 }

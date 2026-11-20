@@ -110,7 +110,7 @@ describe("GET /me", () => {
     expect(j.user).toMatchObject({ id: USER, first_name: "Ivan", language_code: "ru" });
     expect(j.lang).toBe("ru");
     expect(j.pro).toEqual({ is_pro: false, pro_until: 0 });
-    expect(j.settings).toEqual({ angle: "deg", digits: 12, keep_history: false });
+    expect(j.settings).toEqual({ angle: "deg", digits: 12, keep_history: false, style: null, contrast: null, density: null, lite: null, fs: null });
     expect(j.limits.history).toBe(PRO_LIMITS.freeHistory);
     expect(j.pro_stars).toBe(150);
   });
@@ -172,6 +172,89 @@ describe("GET /fx (public)", () => {
   });
 });
 
+describe("look-and-feel settings (style, contrast, density, lite, fs)", () => {
+  const post = (c: Ctx, body: unknown, uid = USER): Promise<Response> =>
+    c.call("settings", { method: "POST", initData: good({ id: uid }), body });
+  const me = async (c: Ctx, uid = USER): Promise<Record<string, any>> =>
+    (await (await c.call("me", { initData: good({ id: uid }) })).json()) as Record<string, any>;
+  const UNSET = { style: null, contrast: null, density: null, lite: null, fs: null };
+
+  it("me always carries the five fields, null while never saved", async () => {
+    const c = await ctx();
+    expect((await me(c)).settings).toMatchObject(UNSET);
+  });
+
+  it.each([
+    ["style", ["tactile", "glass", "fintech", "techno"]],
+    ["contrast", ["normal", "high"]],
+    ["density", ["comfortable", "compact"]],
+    ["lite", ["auto", "on", "off"]],
+    ["fs", ["m", "l", "xl"]],
+  ] as const)("accepts every %s value and shows it in me", async (field, values) => {
+    for (const v of values) {
+      const c = await ctx();
+      const r = await post(c, { [field]: v });
+      expect(r.status).toBe(200);
+      expect(((await r.json()) as any).settings[field]).toBe(v);
+      expect((await me(c)).settings).toMatchObject({ ...UNSET, [field]: v });
+    }
+  });
+
+  it("creates the users row when it does not exist yet (style only)", async () => {
+    const c = await ctx();
+    expect(c.db.users.size).toBe(0);
+    expect((await post(c, { style: "techno" })).status).toBe(200);
+    expect(c.db.users.get(`${BOT_ID}:${USER}`)).toMatchObject({ style: "techno", angle: "deg", digits: 12, keep_history: 0, contrast: null });
+  });
+
+  it("a partial update keeps the other look fields and the classic settings", async () => {
+    const c = await ctx();
+    await post(c, { style: "glass", angle: "rad", digits: 6 });
+    await post(c, { contrast: "high", fs: "xl" });
+    const r = await post(c, { density: "compact" });
+    expect(((await r.json()) as any).settings).toEqual({
+      angle: "rad", digits: 6, keep_history: false, style: "glass", contrast: "high", density: "compact", lite: null, fs: "xl",
+    });
+    await post(c, { style: "fintech" });
+    expect((await me(c)).settings).toMatchObject({ style: "fintech", contrast: "high", density: "compact", fs: "xl", angle: "rad" });
+  });
+
+  it("all five in one request, together with a classic field", async () => {
+    const c = await ctx();
+    const r = await post(c, { style: "fintech", contrast: "high", density: "compact", lite: "on", fs: "l", keep_history: true });
+    expect(((await r.json()) as any).settings).toEqual({
+      angle: "deg", digits: 12, keep_history: true, style: "fintech", contrast: "high", density: "compact", lite: "on", fs: "l",
+    });
+  });
+
+  it("does not touch another user's row, nor pro_until", async () => {
+    const c = await ctx();
+    c.db.setPro(BOT_ID, USER, NOW + 999);
+    await post(c, { style: "glass" }, 7);
+    await post(c, { style: "techno", lite: "off" });
+    expect((await me(c, 7)).settings).toMatchObject({ style: "glass", lite: null });
+    expect((await me(c)).settings).toMatchObject({ style: "techno", lite: "off" });
+    expect(c.db.users.get(`${BOT_ID}:${USER}`)?.pro_until).toBe(NOW + 999);
+    expect(c.db.users.get(`${BOT_ID}:7`)?.pro_until).toBe(0);
+  });
+
+  it("an unknown stored value (hand-edited row) reads as null, not as garbage", async () => {
+    const c = await ctx();
+    c.db.users.set(`${BOT_ID}:${USER}`, { lang: null, angle: "deg", digits: 12, keep_history: 0, pro_until: 0, style: "bogus", contrast: "x", density: null, lite: "ON", fs: "" });
+    expect((await me(c)).settings).toMatchObject(UNSET);
+  });
+
+  it("D1 budget: me = bot + user reads, settings = bot + user reads + 1 write", async () => {
+    const c = await ctx();
+    c.db.queries = 0;
+    await me(c);
+    const meQ = c.db.queries;
+    c.db.queries = 0;
+    await post(c, { style: "glass" });
+    expect(c.db.queries).toBe(meQ + 1);
+  });
+});
+
 describe("POST /settings", () => {
   const post = (c: Ctx, body: unknown, extra: Parameters<typeof apiRequest>[1] = {}): Promise<Response> =>
     c.call("settings", { method: "POST", initData: good(), body, ...extra });
@@ -181,7 +264,7 @@ describe("POST /settings", () => {
     expect((await post(c, { angle: "rad" })).status).toBe(200);
     expect((await post(c, { digits: 6 })).status).toBe(200);
     const r = await post(c, { keep_history: true, lang: "ar" });
-    expect(await r.json()).toEqual({ settings: { angle: "rad", digits: 6, keep_history: true }, lang: "ar" });
+    expect(await r.json()).toEqual({ settings: { angle: "rad", digits: 6, keep_history: true, style: null, contrast: null, density: null, lite: null, fs: null }, lang: "ar" });
     expect(c.db.users.get(`${BOT_ID}:${USER}`)).toMatchObject({ angle: "rad", digits: 6, keep_history: 1, lang: "ar" });
   });
 
@@ -201,6 +284,17 @@ describe("POST /settings", () => {
     ["digits string", { digits: "5" }],
     ["keep_history not boolean", { keep_history: 1 }],
     ["unsupported lang", { lang: "de" }],
+    ["unknown style", { style: "neon" }],
+    ["style wrong case", { style: "Glass" }],
+    ["style not a string", { style: 1 }],
+    ["style null", { style: null }],
+    ["unknown contrast", { contrast: "max" }],
+    ["unknown density", { density: "tight" }],
+    ["unknown lite", { lite: "yes" }],
+    ["lite boolean", { lite: true }],
+    ["unknown fs", { fs: "s" }],
+    ["fs number", { fs: 16 }],
+    ["valid style next to an invalid one", { style: "glass", fs: "xxl" }],
     ["empty object", {}],
     ["array body", [1]],
     ["null body", null],

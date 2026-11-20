@@ -225,6 +225,21 @@ const ROWS = {
   set_saved: ["Saqlandi", "Сохранено", "Saved", "Kaydedildi", "تم الحفظ", "Guardado"],
   set_save_failed: ["Saqlab boʻlmadi", "Не удалось сохранить", "Could not save", "Kaydedilemedi", "تعذّر الحفظ", "No se pudo guardar"],
   set_demo_note: ["Demo rejimda sozlamalar faqat shu qurilmada", "В демо-режиме настройки только на этом устройстве", "In demo mode settings stay on this device", "Demo modunda ayarlar yalnızca bu cihazda", "في الوضع التجريبي تبقى الإعدادات على هذا الجهاز", "En modo demo los ajustes quedan en este dispositivo"],
+
+  // ---- appearance: style picker and adaptation axes (the style names style_<id> come from the bot's i18n catalog) ----
+  set_style: ["Uslub", "Стиль", "Style", "Stil", "النمط", "Estilo"],
+  style_soon: ["Tez orada", "Скоро", "Soon", "Yakında", "قريبًا", "Pronto"],
+  set_contrast: ["Kontrast", "Контраст", "Contrast", "Kontrast", "التباين", "Contraste"],
+  contrast_normal: ["Oddiy", "Обычный", "Normal", "Standart", "عادي", "Normal"],
+  contrast_high: ["Yuqori", "Высокий", "High", "Yüksek", "مرتفع", "Alto"],
+  set_density: ["Zichlik", "Плотность", "Density", "Yoğunluk", "الكثافة", "Densidad"],
+  density_comfortable: ["Keng", "Свободно", "Comfortable", "Rahat", "مريح", "Cómoda"],
+  density_compact: ["Ixcham", "Компактно", "Compact", "Sıkı", "مضغوط", "Compacta"],
+  set_lite: ["Yengil rejim", "Лёгкий режим", "Lite mode", "Hafif mod", "الوضع الخفيف", "Modo ligero"],
+  lite_auto: ["Avto", "Авто", "Auto", "Otomatik", "تلقائي", "Auto"],
+  lite_on: ["Yoqilgan", "Вкл.", "On", "Açık", "تشغيل", "Sí"],
+  lite_off: ["Oʻchiq", "Выкл.", "Off", "Kapalı", "إيقاف", "No"],
+  set_fs: ["Matn oʻlchami", "Размер текста", "Text size", "Yazı boyutu", "حجم النص", "Tamaño del texto"],
 } as const satisfies Record<string, Row>;
 
 export type MsKey = keyof typeof ROWS;

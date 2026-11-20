@@ -1,15 +1,16 @@
 // Finance page: loan (annuity / differentiated) with schedule, VAT, discount, percent change, interest, markup.
 
 import { computeTool, defaultsOf, TOOL_IDS, TOOLS, type ScheduleLine, type ToolId } from "../../lib/finance";
-import { clear, h, icon } from "../dom";
+import type { TableHandle } from "../../contract/types";
+import { clear, h } from "../dom";
+import { openSheet } from "../overlays";
 import { lsGet, lsSet, state, t } from "../state";
-import { chooser, openSheet, segmented } from "../widgets";
-import type { Page } from "./types";
+import type { Page, PageCtx } from "./types";
 import type { MessageKey, MsKey } from "../../i18n";
 
 const tt = (k: string): string => t(k as MsKey | MessageKey);
 
-export function createFinancePage(): Page {
+export function createFinancePage(ctx: PageCtx): Page {
   const el = h("section", { class: "page finance", attrs: { "aria-label": "finance" } });
   let tool: ToolId = lsGet<ToolId>("fin-tool", "loan");
   if (!TOOL_IDS.includes(tool)) tool = "loan";
@@ -18,120 +19,108 @@ export function createFinancePage(): Page {
   let outEl!: HTMLElement;
   let schedEl!: HTMLElement;
 
-  function scheduleTable(sched: ScheduleLine[]): HTMLElement {
-    return h(
-      "table",
-      { class: "tbl ltr" },
-      h("thead", null, h("tr", null, ["r_col_month", "r_col_payment", "r_col_principal", "r_col_interest", "r_col_balance"].map((k) => h("th", { text: tt(k) })))),
-      h(
-        "tbody",
-        null,
-        sched.map((s) =>
-          h(
-            "tr",
-            null,
-            // data-l feeds the inline labels used by the narrow-screen layout
-            h("td", { text: s.month, attrs: { "data-l": tt("r_col_month") } }),
-            h("td", { text: s.payment, attrs: { "data-l": tt("r_col_payment") } }),
-            h("td", { text: s.principal, attrs: { "data-l": tt("r_col_principal") } }),
-            h("td", { text: s.interest, attrs: { "data-l": tt("r_col_interest") } }),
-            h("td", { text: s.balance, attrs: { "data-l": tt("r_col_balance") } }),
-          ),
-        ),
-      ),
-    );
+  function scheduleTable(sched: ScheduleLine[]): TableHandle {
+    return ctx.kit.Table({
+      columns: ["r_col_month", "r_col_payment", "r_col_principal", "r_col_interest", "r_col_balance"].map(tt),
+      rows: sched.map((s) => [String(s.month), s.payment, s.principal, s.interest, s.balance]),
+    });
   }
 
   function compute(): void {
+    const kit = ctx.kit;
     const vals = valuesOf(tool);
     lsSet("fin-" + tool, vals);
     clear(outEl);
     clear(schedEl);
     const r = computeTool(tool, vals, state.lang);
     if (!r.ok) {
-      outEl.appendChild(h("div", { class: "card err", text: r.error === "div0" ? tt("err_div0") : tt("fin_bad_input") }));
+      outEl.appendChild(kit.Notice({ kind: "error", text: r.error === "div0" ? tt("err_div0") : tt("fin_bad_input") }).el);
       return;
     }
     // the headline row is the hero of the card, the rest are compact label-over-value cells
     const hero = r.rows.find((row) => row.strong);
     const rest = r.rows.filter((row) => row !== hero);
     const sched = r.schedule;
+    const card = kit.ResultCard({ variant: "hero" });
     // roomy screens show the schedule inline (inner scroll); short ones open it in a sheet so the page never scrolls
-    const schedBtn = sched
-      ? h(
-          "button",
-          { class: "btn slim sched-btn", attrs: { type: "button", "aria-label": tt("r_schedule") }, on: { click: () => openSheet(tt("r_schedule"), (body) => body.appendChild(h("div", { class: "tbl-wrap sheet-tbl" }, scheduleTable(sched)))) } },
-          icon("table", 16),
-          t("graph_table"),
-        )
-      : null;
-    outEl.appendChild(
-      h(
-        "div",
-        { class: "card out-rows" },
-        hero ? h("div", { class: "hero" }, h("span", { class: "row-l", text: tt(hero.label) }), h("span", { class: "hero-v ltr", text: hero.value })) : null,
-        h("div", { class: "cells" }, rest.map((row) => h("div", { class: "cell" }, h("span", { class: "row-l", text: tt(row.label) }), h("span", { class: "row-v ltr", text: row.value }))), schedBtn),
-      ),
-    );
-    if (sched) schedEl.append(h("div", { class: "lbl", text: tt("r_schedule") }), h("div", { class: "tbl-wrap" }, scheduleTable(sched)));
+    if (sched) {
+      const btn = kit.Button({
+        size: "slim",
+        block: true,
+        icon: "table",
+        label: t("graph_table"),
+        ariaLabel: tt("r_schedule"),
+        onClick: () => openSheet(tt("r_schedule"), (body) => body.appendChild(scheduleTable(sched).el)),
+      });
+      btn.el.classList.add("sched-btn");
+      card.actions.appendChild(btn.el);
+    }
+    card.update({
+      mainLabel: hero ? tt(hero.label) : undefined,
+      main: hero ? [hero.value] : [],
+      stats: rest.map((row) => ({ label: tt(row.label), value: row.value })),
+    });
+    outEl.appendChild(card.el);
+    if (sched) schedEl.append(kit.Text({ kind: "label", text: tt("r_schedule") }).el, scheduleTable(sched).el);
   }
 
   function render(): void {
     clear(el);
+    const kit = ctx.kit;
     el.appendChild(
-      chooser(
-        TOOL_IDS.map((id) => [id, tt(TOOLS[id].title)] as const),
-        tool,
-        (id) => {
+      kit.Chooser({
+        options: TOOL_IDS.map((id) => [id, tt(TOOLS[id].title)] as const),
+        value: tool,
+        label: tt("nav_finance"),
+        onPick: (id) => {
           tool = id;
           lsSet("fin-tool", id);
           render();
         },
-        tt("nav_finance"),
-      ),
+      }).el,
     );
     const vals = valuesOf(tool);
-    const form = h("div", { class: "card form fgrid" });
+    const form = kit.Card({ class: "form fgrid" }).el;
     // an odd count of number fields: the first one takes the full row so the rest pair up
     const oddNumbers = TOOLS[tool].fields.filter((f) => f.kind === "number").length % 2 === 1;
     let firstNumber = true;
     for (const f of TOOLS[tool].fields) {
       if (f.kind === "number") {
-        const input = h("input", {
-          class: "field ltr",
-          attrs: { type: "text", inputmode: "decimal", dir: "ltr", autocomplete: "off", "aria-label": tt(f.label) },
-          on: {
-            input: () => {
-              vals[f.id] = input.value;
-              compute();
-            },
+        const field = kit.Field({
+          label: tt(f.label),
+          ariaLabel: tt(f.label),
+          inputMode: "decimal",
+          value: vals[f.id] ?? f.default,
+          onInput: (v) => {
+            vals[f.id] = v;
+            compute();
           },
         });
-        input.value = vals[f.id] ?? f.default;
-        form.appendChild(h("label", { class: "lbl" + (oddNumbers && firstNumber ? " span2" : "") }, tt(f.label), input));
+        if (oddNumbers && firstNumber) field.el.classList.add("span2");
+        form.appendChild(field.el);
         firstNumber = false;
       } else {
         form.appendChild(
           h(
             "div",
-            { class: "lbl span2" + ((f.options ?? []).length <= 2 ? " inl" : "") },
-            tt(f.label),
-            segmented(
-              (f.options ?? []).map(([v, k]) => [v, tt(k)] as const),
-              vals[f.id] ?? f.default,
-              (v) => {
+            { class: "fld-row span2" + ((f.options ?? []).length <= 2 ? " inl" : "") },
+            kit.Text({ kind: "label", text: tt(f.label) }).el,
+            kit.Segmented({
+              options: (f.options ?? []).map(([v, k]) => [v, tt(k)] as const),
+              value: vals[f.id] ?? f.default,
+              label: tt(f.label),
+              onPick: (v) => {
                 vals[f.id] = v;
                 compute();
               },
-              tt(f.label),
-            ),
+            }).el,
           ),
         );
       }
     }
     outEl = h("div", { class: "fin-out", attrs: { "aria-live": "polite" } });
     // result first on short screens: it is what the user came for, the form is two compact columns
-    schedEl = h("div", { class: "card sched" });
+    schedEl = kit.Card({ class: "sched" }).el;
     el.append(outEl, form, schedEl);
     compute();
   }

@@ -21,5 +21,9 @@
   "loan_label_monthly",
   "loan_label_total",
   "loan_label_interest",
-  "settings_title"
+  "settings_title",
+  "style_tactile",
+  "style_glass",
+  "style_fintech",
+  "style_techno"
 ]

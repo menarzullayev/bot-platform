@@ -28,7 +28,7 @@ export const tr: Messages = {
     "<b>Misafir modu</b>\n" +
     "Beni eklemediğiniz bir sohbette bile <code>@tezcalc_bot</code> yazıp ardından bir ifade girin, cevap veririm.\n\n" +
     "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
-    "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
+    "⚙️ /settings · 🎨 /style · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 Dilinizi seçin",
   lang_changed: "✅ Dil Türkçe olarak değiştirildi.",
@@ -182,4 +182,13 @@ export const tr: Messages = {
   cmd_integrate: "Adım adım integral (Pro)",
   cmd_widget: "Hesap makinesi widget'ı",
   cmd_app: "Mini Uygulamayı aç",
+  style_title: "🎨 <b>Mini Uygulama stili</b>\nTezCalc Mini Uygulamasının görünümünü seçin.",
+  style_current: "Geçerli stil:",
+  style_tactile: "Dokunsal 3D",
+  style_glass: "Cam",
+  style_fintech: "Fintech",
+  style_techno: "Tekno HUD",
+  style_changed: "✅ Stil kaydedildi",
+  style_open_app: "📱 Mini Uygulamayı aç",
+  cmd_style: "Mini Uygulama stilini değiştir",
 };

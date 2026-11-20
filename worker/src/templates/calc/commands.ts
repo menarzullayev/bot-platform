@@ -33,6 +33,7 @@ import {
   type UserField,
   type UserState,
 } from "./store";
+import { DEFAULT_STYLE, STYLE_IDS, isStyleId, type StyleId } from "./style";
 import {
   computeOptions,
   displayName,
@@ -86,6 +87,25 @@ function settingsKeyboard(lang: Lang, st: UserState): InlineKeyboard {
     .row();
   DIGIT_CHOICES.forEach((d, i) => kb.text(mark(st.digits === d, i === 0 ? `🔢 ${d}` : String(d)), `st:d:${d}`));
   kb.row().text(`🕘 ${t(lang, st.keepHistory ? "btn_on" : "btn_off")}`, `st:h:${st.keepHistory ? 0 : 1}`);
+  return kb;
+}
+
+// ---------- /style ----------
+
+function styleText(lang: Lang, current: StyleId | null): string {
+  const name = t(lang, `style_${current ?? DEFAULT_STYLE}` as MessageKey);
+  return [t(lang, "style_title"), "", `${t(lang, "style_current")} <b>${esc(name)}</b>`].join("\n");
+}
+
+function styleKeyboard(lang: Lang, current: StyleId | null, appUrl: string | null): InlineKeyboard {
+  const active = current ?? DEFAULT_STYLE;
+  const kb = new InlineKeyboard();
+  STYLE_IDS.forEach((id, i) => {
+    const label = t(lang, `style_${id}` as MessageKey);
+    kb.text(id === active ? `✓ ${label}` : label, `st:s:${id}`);
+    if (i % 2 === 1) kb.row();
+  });
+  if (appUrl) kb.row().webApp(t(lang, "style_open_app"), appUrl);
   return kb;
 }
 
@@ -313,6 +333,44 @@ export function installCommands(bot: Bot, svc: Svc): void {
       });
     } catch (e) {
       if (!isNotModified(e)) log("warn", "calc: settings edit failed", { botId, error: errInfo(e) });
+    }
+  });
+
+  // ----- style (look of the Mini App) -----
+  bot.command("style", async (ctx) => {
+    const u = await loadUser(svc, ctx.from);
+    // web_app buttons only work in private chats
+    const appUrl = isPrivate(ctx) ? miniAppUrl(svc) : null;
+    await reply(ctx, styleText(u.lang, u.state.style), { reply_markup: styleKeyboard(u.lang, u.state.style, appUrl) });
+  });
+
+  bot.callbackQuery(/^st:s:([a-z]{1,12})$/, async (ctx) => {
+    const id = ctx.match[1];
+    if (!isStyleId(id)) {
+      await ctx.answerCallbackQuery();
+      return;
+    }
+    const u = await loadUser(svc, ctx.from);
+    const changed = id !== u.state.style;
+    if (changed) {
+      try {
+        await setUserField(db, botId, ctx.from.id, "style", id, svc.now());
+      } catch (e) {
+        log("error", "calc: style save failed", { botId, error: errInfo(e) });
+        await ctx.answerCallbackQuery({ text: t(u.lang, "err_generic").replace(/^⚠️\s*/, ""), show_alert: true });
+        return;
+      }
+    }
+    await ctx.answerCallbackQuery(changed ? { text: t(u.lang, "style_changed") } : {});
+    if (!changed) return;
+    const appUrl = ctx.chat?.type === "private" ? miniAppUrl(svc) : null;
+    try {
+      await ctx.editMessageText(styleText(u.lang, id), {
+        parse_mode: "HTML",
+        reply_markup: styleKeyboard(u.lang, id, appUrl),
+      });
+    } catch (e) {
+      if (!isNotModified(e)) log("warn", "calc: style edit failed", { botId, error: errInfo(e) });
     }
   });
 

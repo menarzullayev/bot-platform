@@ -204,6 +204,141 @@ describe("/settings", () => {
   });
 });
 
+describe("/style", () => {
+  const STYLES = ["tactile", "glass", "fintech", "techno"] as const;
+
+  it("lists the four styles, marks Tactile by default and offers the Mini App button", async () => {
+    const h = harness();
+    await h.send(text("/style"));
+    const m = h.sent("sendMessage")[0];
+    const markup = kb(m);
+    for (const id of STYLES) expect(markup).toContain(`"callback_data":"st:s:${id}"`);
+    expect(markup).toContain(`✓ ${en.style_tactile}`);
+    expect(markup.match(/✓/g)).toHaveLength(1);
+    expect(markup).toContain('"web_app":{"url":"https://calc.test/app/?b=b1"}');
+    expect(markup).toContain(en.style_open_app);
+    expect(String(m.payload.text)).toContain(en.style_title);
+    expect(String(m.payload.text)).toContain(en.style_tactile);
+  });
+
+  it("marks the stored style", async () => {
+    const h = harness();
+    setUser(h.db, 5, { style: "techno" });
+    await h.send(text("/style"));
+    const markup = kb(h.sent("sendMessage")[0]);
+    expect(markup).toContain(`✓ ${en.style_techno}`);
+    expect(markup.match(/✓/g)).toHaveLength(1);
+  });
+
+  it("an unknown stored style reads as the default", async () => {
+    const h = harness();
+    setUser(h.db, 5, { style: "bogus" });
+    await h.send(text("/style"));
+    expect(kb(h.sent("sendMessage")[0])).toContain(`✓ ${en.style_tactile}`);
+  });
+
+  it("no web_app button in a group, and without PUBLIC_BASE_URL", async () => {
+    const g = harness();
+    await g.send(text("/style", { type: "group" }));
+    expect(kb(g.sent("sendMessage")[0])).not.toContain("web_app");
+    expect(kb(g.sent("sendMessage")[0])).toContain("st:s:glass");
+    const n = harness({ appConfig: { publicBaseUrl: null } });
+    await n.send(text("/style"));
+    expect(kb(n.sent("sendMessage")[0])).not.toContain("web_app");
+  });
+
+  it.each(STYLES)("callback st:s:%s saves, answers and edits the message", async (id) => {
+    const h = harness();
+    setUser(h.db, 5, { style: id === "glass" ? "fintech" : "glass" });
+    await h.send(callback(`st:s:${id}`));
+    expect(h.db.userRows.get("b1:5")?.style).toBe(id);
+    expect(h.sent("answerCallbackQuery")[0].payload.text).toBe(en.style_changed);
+    const e = h.sent("editMessageText")[0];
+    expect(kb(e)).toContain(`✓ ${en[`style_${id}` as const]}`);
+    expect(kb(e)).toContain("web_app");
+    expect(String(e.payload.text)).toContain(`<b>${en[`style_${id}` as const]}</b>`);
+  });
+
+  it("the first explicit choice of Tactile is stored (null -> tactile)", async () => {
+    const h = harness();
+    await h.send(callback("st:s:tactile"));
+    expect(h.db.userRows.get("b1:5")?.style).toBe("tactile");
+  });
+
+  it("choosing the current style writes nothing and edits nothing", async () => {
+    const h = harness();
+    setUser(h.db, 5, { style: "glass" });
+    h.db.resetCounters();
+    await h.send(callback("st:s:glass"));
+    expect(h.db.writes).toBe(0);
+    expect(h.sent("editMessageText")).toHaveLength(0);
+    expect(h.sent("answerCallbackQuery")).toHaveLength(1);
+  });
+
+  it.each(["st:s:neon", "st:s:GLASS", "st:s:", "st:s:glass2", "st:s:__proto__"])("invalid value %s is ignored", async (data) => {
+    const h = harness();
+    h.db.resetCounters();
+    await h.send(callback(data));
+    expect(h.db.userRows.size).toBe(0);
+    expect(h.db.writes).toBe(0);
+    expect(h.sent("editMessageText")).toHaveLength(0);
+  });
+
+  it("does not disturb the other settings callbacks and keeps pro_until", async () => {
+    const h = harness();
+    makePro(h.db);
+    await h.send(callback("st:s:fintech"));
+    await h.send(callback("st:a:rad"));
+    const row = h.db.userRows.get("b1:5")!;
+    expect(row).toMatchObject({ style: "fintech", angle: "rad" });
+    expect(row.pro_until).toBeGreaterThan(0);
+  });
+
+  it("a save failure is reported, not swallowed", async () => {
+    const h = harness();
+    setLogSink(() => {});
+    h.db.failSql = /INSERT INTO users/;
+    await h.send(callback("st:s:glass"));
+    expect(h.sent("answerCallbackQuery")[0].payload.show_alert).toBe(true);
+    expect(h.sent("editMessageText")).toHaveLength(0);
+  });
+
+  it("'message is not modified' from Telegram is not an error", async () => {
+    const h = harness({ failMethods: ["editMessageText"] });
+    setLogSink(() => {});
+    await h.send(callback("st:s:glass"));
+    expect(h.db.userRows.get("b1:5")?.style).toBe("glass");
+  });
+
+  it("D1 budget: /style = 1 read, 0 writes; a choice = 1 read, 1 write", async () => {
+    const h = harness();
+    h.db.resetCounters();
+    await h.send(text("/style"));
+    expect([h.db.reads, h.db.writes]).toEqual([1, 0]);
+    h.db.resetCounters();
+    await h.send(callback("st:s:glass"));
+    expect([h.db.reads, h.db.writes]).toEqual([1, 1]);
+  });
+
+  it.each(LANGS)("%s: localized names, distinct, in the keyboard", async (lang) => {
+    const d = DICTIONARIES[lang];
+    expect(new Set(STYLES.map((id) => d[`style_${id}` as const])).size).toBe(4);
+    const h = harness();
+    setUser(h.db, 5, { lang });
+    await h.send(text("/style"));
+    const markup = kb(h.sent("sendMessage")[0]);
+    for (const id of STYLES) expect(markup).toContain(JSON.stringify(d[`style_${id}` as const]).slice(1, -1));
+    expect(d.help).toContain("/style");
+  });
+
+  it("/deleteme resets the look settings too", async () => {
+    const h = harness();
+    setUser(h.db, 5, { style: "glass", contrast: "high", density: "compact", lite: "on", fs: "xl" });
+    await h.send(callback("dm:y"));
+    expect(h.db.userRows.get("b1:5")).toMatchObject({ style: null, contrast: null, density: null, lite: null, fs: null });
+  });
+});
+
 describe("/history", () => {
   const fill = (h: ReturnType<typeof harness>, n: number, uid = 5) => {
     for (let i = 1; i <= n; i++) h.db.history.push({ id: i, bot_id: "b1", user_id: uid, expr: `${i}+1`, result: String(i + 1), ts: NOW });

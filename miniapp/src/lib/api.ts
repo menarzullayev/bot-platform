@@ -7,6 +7,12 @@ export interface Settings {
   angle: "deg" | "rad";
   digits: number;
   keep_history: boolean;
+  /** Style and adaptation axes (null/absent = default). Values are validated by the client before use. */
+  style?: string | null;
+  contrast?: string | null;
+  density?: string | null;
+  lite?: string | null;
+  fs?: string | null;
 }
 
 export interface MeResponse {

@@ -30,7 +30,7 @@ describe("Mini App production bundle", () => {
 
   it("uses cache-busting hashed names and ships no source maps", () => {
     const names = result.files.map((f) => f.name);
-    for (const n of names.filter((x) => x !== "index.html")) expect(n, n).toMatch(/^(main|chunk)-[A-Z0-9]{8}\.(js|css)$/);
+    for (const n of names.filter((x) => x !== "index.html")) expect(n, n).toMatch(/^(main|chunk|boot|pack)-[A-Z0-9]{8}\.(js|css)$/);
     expect(names.some((n) => n.endsWith(".map"))).toBe(false);
     for (const f of jsFiles()) expect(read(f)).not.toMatch(/sourceMappingURL/);
   });
@@ -42,6 +42,9 @@ describe("Mini App production bundle", () => {
     expect(html).toContain('<script src="https://telegram.org/js/telegram-web-app.js"></script>');
     // every <script> has a src; no inline handlers, no inline styles
     for (const m of html.matchAll(/<script\b([^>]*)>/g)) expect(m[1]).toMatch(/\bsrc="/);
+    // the boot script (cached theme/style/axes before first paint) is an external classic script, before the Telegram SDK
+    expect(html).toContain(`<script src="/app/${result.bootJs}"></script>`);
+    expect(html.indexOf(result.bootJs)).toBeLessThan(html.indexOf("telegram-web-app.js"));
     expect(html).not.toMatch(/<style\b/i);
     expect(html).not.toMatch(/\sstyle\s*=/i);
     expect(html).not.toMatch(/\son[a-z]+\s*=/i);
@@ -86,7 +89,51 @@ describe("Mini App production bundle", () => {
   });
 
   it("is deterministic in structure: entry names are referenced by index.html", () => {
-    const refs = [...read("index.html").matchAll(/\/app\/((?:main|chunk)-[A-Z0-9]{8}\.(?:js|css))/g)].map((m) => m[1]);
+    const refs = [...read("index.html").matchAll(/\/app\/((?:main|chunk|boot)-[A-Z0-9]{8}\.(?:js|css))/g)].map((m) => m[1]);
     for (const r of refs) expect(result.files.some((f) => f.name === r), r).toBe(true);
+  });
+
+  it("boot.js is a classic script that sets the cached look on <html> and needs no module loader", () => {
+    const code = read(result.bootJs);
+    expect(code).not.toMatch(/\bimport\s*[({]|\bexport\s/);
+    for (const attr of ["data-style", "data-theme", "data-contrast", "data-density", "data-lite", "data-fs"]) expect(code, attr).toContain(attr);
+    expect(code).toContain("tc:prefs");
+    expect(result.files.find((x) => x.name === result.bootJs)!.gzip).toBeLessThan(2048);
+  });
+
+  it("ships each style pack as its own CSP-safe stylesheet file, not inside JS or the core css", () => {
+    const packs = result.files.map((x) => x.name).filter((n) => /^pack-[A-Z0-9]{8}\.css$/.test(n));
+    expect(packs.length).toBeGreaterThanOrEqual(1);
+    for (const p of packs) {
+      const css = read(p);
+      expect(css.length).toBeGreaterThan(2000);
+      expect(css).toContain("--accent");
+      expect(css).not.toMatch(/@import|url\(|https?:\/\//);
+      // referenced by URL from a lazy chunk (the registry links it), never by the entry
+      expect(jsFiles().filter((j) => read(j).includes("/app/" + p)).length).toBe(1);
+      expect(read(result.entryJs)).not.toContain(p);
+    }
+    // pack-only selectors are in the pack file and not in the entry stylesheet; core geometry is the other way round
+    const core = read(result.entryCss);
+    expect(core).toContain(".keypad");
+    expect(core).toContain('[data-ui=tabs]');
+    expect(core).not.toContain(".tab-pro");
+    expect(packs.some((p) => read(p).includes(".tab-pro"))).toBe(true);
+    for (const j of jsFiles()) expect(read(j), j).not.toContain(".tab-pro{");
+  });
+
+  it("keeps the style kit out of the entry chunk: it is a lazy import (only the chosen style is loaded)", () => {
+    const main = read(result.entryJs);
+    const kitFiles = jsFiles().filter((j) => read(j).includes("style-card"));
+    expect(kitFiles.length).toBe(1);
+    expect(kitFiles[0]).not.toBe(result.entryJs);
+    expect(main).not.toContain("style-card");
+    // not statically imported by the entry, but reachable through import()
+    const staticImports = [...main.matchAll(/(?:from|import)\s*"(\.\/chunk-[A-Z0-9]{8}\.js)"/g)].map((m) => m[1]);
+    expect(staticImports).not.toContain("./" + kitFiles[0]);
+    const dynamic = jsFiles().flatMap((j) => [...read(j).matchAll(/import\("\.\/(chunk-[A-Z0-9]{8}\.js)"\)/g)].map((m) => m[1]));
+    expect(dynamic).toContain(kitFiles[0]);
+    // the entry stays small: it carries the core and registry, not the packs
+    expect(result.files.find((x) => x.name === result.entryJs)!.gzip).toBeLessThan(20 * 1024);
   });
 });

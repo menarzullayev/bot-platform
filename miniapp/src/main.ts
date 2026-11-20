@@ -1,14 +1,19 @@
-// Mini App entry: boot, theme/language/direction, tab navigation with lazy pages, server session.
+// Mini App entry: boot, style + axes, theme/language/direction, tab navigation with lazy pages, server session.
+// The visual style is a lazily loaded pack (styles/registry.ts); this file only wires core behaviour to the active kit.
 
-import "./styles.css";
+import "./core.css";
 import { detectLang, isLang, isRtl } from "../../worker/src/i18n";
+import { applyAxes } from "./contract/axes";
+import { DEFAULT_STYLE, isStyleId, parseAxes } from "./contract/model";
+import type { TabsHandle } from "./contract/types";
 import { BOT_ID_RE, createApi } from "./lib/api";
-import { clear, h, icon } from "./ui/dom";
+import { applyStyle, currentKit, loadStyle, onStyleChange } from "./styles/registry";
+import { clear, h } from "./ui/dom";
 import { createCalcPage } from "./ui/pages/calc";
 import { createConvertPage } from "./ui/pages/convert";
 import { createFinancePage } from "./ui/pages/finance";
 import { createSettingsPage } from "./ui/pages/settings";
-import type { Page } from "./ui/pages/types";
+import type { Page, PageCtx } from "./ui/pages/types";
 import { refreshMe } from "./ui/session";
 import { lsGet, onChange, state, t, update, type StoredPrefs } from "./ui/state";
 import { inTelegram, initTelegram, onTelegramEvent, pushBack, syncChrome, tg, haptic } from "./ui/tg";
@@ -23,27 +28,36 @@ const TABS: ReadonlyArray<{ id: TabId; icon: string; label: "nav_calc" | "nav_co
   { id: "settings", icon: "settings", label: "nav_settings" },
 ];
 
+/** Pages read `ctx.kit` while rendering, so after a style switch a re-render picks up the new kit. */
+const ctx: PageCtx = {
+  get kit() {
+    return currentKit();
+  },
+};
+
 const pages = new Map<TabId, Page>();
 let current: TabId = "calc";
 let pagesEl!: HTMLElement;
-let navEl!: HTMLElement;
-let bannerEl!: HTMLElement;
+let navSlot!: HTMLElement;
+let bannerSlot!: HTMLElement;
+let tabs: TabsHandle | null = null;
+let shellReady = false;
 let unback: (() => void) | null = null;
 
 async function makePage(id: TabId): Promise<Page> {
   switch (id) {
     case "calc":
-      return createCalcPage();
+      return createCalcPage(ctx);
     case "convert":
-      return createConvertPage();
+      return createConvertPage(ctx);
     case "finance":
-      return createFinancePage();
+      return createFinancePage(ctx);
     case "settings":
-      return createSettingsPage(applyTheme);
+      return createSettingsPage(ctx, applyTheme);
     case "graph":
-      return (await import("./ui/pages/graph")).createGraphPage();
+      return (await import("./ui/pages/graph")).createGraphPage(ctx);
     case "solve":
-      return (await import("./ui/pages/solve")).createSolvePage();
+      return (await import("./ui/pages/solve")).createSolvePage(ctx);
   }
 }
 
@@ -63,58 +77,35 @@ async function show(id: TabId): Promise<void> {
   current = id;
   page.el.hidden = false;
   page.onShow?.();
-  paintNav();
+  tabs?.setActive(current);
   // BackButton returns to the calculator from any other tab
   unback?.();
   unback = id === "calc" ? null : pushBack(() => void show("calc"));
 }
 
-function paintNav(): void {
-  for (const b of navEl.querySelectorAll<HTMLElement>("[data-tab]")) {
-    const on = b.dataset.tab === current;
-    b.setAttribute("aria-selected", String(on));
-    b.classList.toggle("on", on);
-  }
-}
-
 function buildNav(): void {
-  clear(navEl);
-  for (const tab of TABS) {
-    navEl.appendChild(
-      h(
-        "button",
-        {
-          class: "tab",
-          dataset: { tab: tab.id },
-          attrs: { type: "button", role: "tab", "aria-label": t(tab.label) },
-          on: {
-            click: () => {
-              if (tab.id !== current) haptic.select();
-              void show(tab.id);
-            },
-          },
-        },
-        icon(tab.icon, 20),
-        h("span", { class: "tab-label", text: t(tab.label) }),
-        tab.id === "solve" && !state.isPro ? h("span", { class: "tab-pro", text: t("pro_badge") }) : null,
-      ),
-    );
-  }
-  paintNav();
+  clear(navSlot);
+  tabs = ctx.kit.Tabs({
+    active: current,
+    tabs: TABS.map((tab) => ({ id: tab.id, icon: tab.icon, label: t(tab.label), badge: tab.id === "solve" && !state.isPro ? t("pro_badge") : undefined })),
+    onSelect: (id) => {
+      if (id !== current) haptic.select();
+      void show(id as TabId);
+    },
+  });
+  navSlot.appendChild(tabs.el);
 }
 
 function paintBanner(): void {
-  clear(bannerEl);
+  clear(bannerSlot);
   if (state.authError) {
-    bannerEl.hidden = false;
-    bannerEl.dataset.kind = "error";
-    bannerEl.append(h("strong", { text: t(state.authError) }));
+    bannerSlot.hidden = false;
+    bannerSlot.appendChild(ctx.kit.Notice({ kind: "error", title: t(state.authError) }).el);
   } else if (state.mode === "demo") {
-    bannerEl.hidden = false;
-    bannerEl.dataset.kind = "info";
-    bannerEl.append(h("strong", { text: t("open_in_telegram") }), h("span", { class: "banner-hint", text: " — " + t("open_in_telegram_hint") }));
+    bannerSlot.hidden = false;
+    bannerSlot.appendChild(ctx.kit.Notice({ kind: "info", title: t("open_in_telegram"), text: t("open_in_telegram_hint") }).el);
   } else {
-    bannerEl.hidden = true;
+    bannerSlot.hidden = true;
   }
 }
 
@@ -133,10 +124,23 @@ function applyTheme(): void {
   });
 }
 
+function applyCurrentAxes(): void {
+  applyAxes({ contrast: state.contrast, density: state.density, lite: state.lite, fs: state.fs });
+}
+
 function rerenderAll(): void {
   buildNav();
   paintBanner();
   for (const p of pages.values()) p.render();
+}
+
+let styleSeq = 0;
+/** Loads and applies the style the user chose (falls back to the default pack while it is not available). */
+async function activateStyle(): Promise<void> {
+  const my = ++styleSeq;
+  const pack = await loadStyle(state.style);
+  if (my !== styleSeq) return;
+  await applyStyle(pack);
 }
 
 function bootState(): { langExplicit: boolean } {
@@ -153,6 +157,8 @@ function bootState(): { langExplicit: boolean } {
     digits: Number.isInteger(stored.digits) && (stored.digits as number) >= 0 && (stored.digits as number) <= 20 ? (stored.digits as number) : 12,
     keepHistory: stored.keepHistory === true,
     theme: stored.theme === "light" || stored.theme === "dark" ? stored.theme : "auto",
+    style: isStyleId(stored.style) ? stored.style : DEFAULT_STYLE,
+    ...parseAxes(stored),
     botId,
     mode,
     // opened as a Mini App but without a bot id in the URL: nothing to authenticate against
@@ -162,24 +168,55 @@ function bootState(): { langExplicit: boolean } {
   return { langExplicit: isLang(stored.lang) };
 }
 
+/** Shown when not even the fallback style could be loaded (offline with an empty cache). */
+function showBootError(app: HTMLElement): void {
+  clear(app);
+  app.appendChild(
+    h(
+      "div",
+      { class: "boot" },
+      h("div", { text: t("err_network") }),
+      h("button", { attrs: { type: "button" }, text: t("retry"), on: { click: () => location.reload() } }),
+    ),
+  );
+}
+
 async function main(): Promise<void> {
   initTelegram();
   const { langExplicit } = bootState();
   const app = document.getElementById("app");
   if (!app) return;
-  clear(app);
-  bannerEl = h("div", { class: "banner", attrs: { role: "status" } });
-  pagesEl = h("main", { class: "pages" });
-  navEl = h("nav", { class: "tabbar", attrs: { role: "tablist" } });
-  app.append(bannerEl, pagesEl, navEl);
+  applyCurrentAxes();
   applyTheme();
+  onStyleChange(() => {
+    applyTheme();
+    if (shellReady) rerenderAll();
+  });
+  try {
+    await activateStyle();
+  } catch {
+    showBootError(app);
+    return;
+  }
+  clear(app);
+  app.removeAttribute("aria-busy");
+  bannerSlot = h("div", { class: "slot-banner" });
+  pagesEl = h("main", { class: "pages" });
+  navSlot = h("div", { class: "slot-nav" });
+  app.append(bannerSlot, pagesEl, navSlot);
   buildNav();
   paintBanner();
+  shellReady = true;
   await show("calc");
 
   let wasPro = state.isPro;
   onChange((changed) => {
     if (changed.includes("lang") || changed.includes("theme")) applyTheme();
+    if (changed.includes("contrast") || changed.includes("density") || changed.includes("lite") || changed.includes("fs")) {
+      applyCurrentAxes();
+      applyTheme();
+    }
+    if (changed.includes("style")) void activateStyle();
     if (changed.includes("lang") || (changed.includes("isPro") && state.isPro !== wasPro) || changed.includes("authError")) {
       wasPro = state.isPro;
       rerenderAll();

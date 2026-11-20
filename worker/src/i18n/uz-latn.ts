@@ -30,7 +30,7 @@ export const uzLatn: Messages = {
     "<b>Mehmon rejimi</b>\n" +
     "Istalgan chatda, hatto men qoʻshilmagan guruhda ham, <code>@tezcalc_bot</code> va ifodani yozing — men javob beraman.\n\n" +
     "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
-    "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
+    "⚙️ /settings · 🎨 /style · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 Tilni tanlang",
   lang_changed: "✅ Til oʻzgartirildi: oʻzbekcha.",
@@ -184,4 +184,13 @@ export const uzLatn: Messages = {
   cmd_integrate: "Integral, bosqichlab (Pro)",
   cmd_widget: "Kalkulyator vidjeti",
   cmd_app: "Mini ilovani ochish",
+  style_title: "🎨 <b>Mini ilova uslubi</b>\nTezCalc mini ilovasi koʻrinishini tanlang.",
+  style_current: "Joriy uslub:",
+  style_tactile: "Hajmli",
+  style_glass: "Shisha",
+  style_fintech: "Fintech",
+  style_techno: "Texno HUD",
+  style_changed: "✅ Uslub saqlandi",
+  style_open_app: "📱 Mini ilovani ochish",
+  cmd_style: "Mini ilova uslubini oʻzgartirish",
 };

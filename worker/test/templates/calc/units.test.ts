@@ -332,13 +332,17 @@ describe("memory", () => {
 describe("store", () => {
   it("defaults for an unknown user", async () => {
     const s = await getUserState(new CalcFakeDb(), "b1", 5);
-    expect(s).toEqual({ exists: false, lang: null, angle: "deg", digits: 12, keepHistory: false, proUntil: 0 });
+    expect(s).toEqual({ exists: false, lang: null, angle: "deg", digits: 12, keepHistory: false, proUntil: 0, style: null });
   });
 
   it("reads and validates a stored row", async () => {
     const db = new CalcFakeDb();
     setUser(db, 5, { lang: "tr", angle: "rad", digits: 20, keep_history: 1, pro_until: 99 });
-    expect(await getUserState(db, "b1", 5)).toEqual({ exists: true, lang: "tr", angle: "rad", digits: 20, keepHistory: true, proUntil: 99 });
+    expect(await getUserState(db, "b1", 5)).toEqual({ exists: true, lang: "tr", angle: "rad", digits: 20, keepHistory: true, proUntil: 99, style: null });
+    setUser(db, 7, { style: "glass" });
+    expect(await getUserState(db, "b1", 7)).toMatchObject({ style: "glass" });
+    setUser(db, 8, { style: "bogus" });
+    expect(await getUserState(db, "b1", 8)).toMatchObject({ style: null });
     setUser(db, 6, { lang: "xx", angle: "zzz", digits: 7 });
     expect(await getUserState(db, "b1", 6)).toMatchObject({ lang: null, angle: "deg", digits: 12 });
   });

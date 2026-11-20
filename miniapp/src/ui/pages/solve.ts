@@ -14,11 +14,11 @@ import {
   type Step,
 } from "../../../../worker/src/calc/symbolic";
 import { clear, h } from "../dom";
+import { buyPro } from "../overlays";
 import { refreshMe } from "../session";
 import { lsGet, lsSet, state, t } from "../state";
 import { haptic } from "../tg";
-import { chooser, proLock } from "../widgets";
-import type { Page } from "./types";
+import type { Page, PageCtx } from "./types";
 
 type Mode = "derivative" | "integral" | "equation" | "system" | "arith";
 const MODES: Mode[] = ["derivative", "integral", "equation", "system", "arith"];
@@ -56,40 +56,31 @@ export function stepNodes(step: Step): Node[] {
   return out;
 }
 
-export function createSolvePage(): Page {
+export function createSolvePage(ctx: PageCtx): Page {
   const el = h("section", { class: "page solve", attrs: { "aria-label": "solve" } });
   let mode: Mode = lsGet<Mode>("solve-mode", "derivative");
   if (!MODES.includes(mode)) mode = "derivative";
   const vals: Record<string, string> = { expr: "x^2*sin(x)", eq: "x^2-5x+6=0", eq1: "2x+3y=7", eq2: "x-y=1", a: "0", b: "1", variable: "x", definite: "" };
   let out!: HTMLElement;
 
-  function showFailure(f: Failure): void {
+  function showFailure(fail: Failure): void {
     clear(out);
-    out.appendChild(h("div", { class: "card err", text: failText(f) }));
+    out.appendChild(ctx.kit.Notice({ kind: "error", text: failText(fail) }).el);
   }
 
   function showResult(title: string, main: string[], steps: Step[]): void {
+    const kit = ctx.kit;
     clear(out);
-    out.appendChild(
-      h(
-        "div",
-        { class: "card result-card" },
-        h("div", { class: "lbl", text: title }),
-        ...main.map((m) => h("div", { class: "res-line ltr", text: m })),
-      ),
-    );
+    const res = kit.ResultCard({ variant: "lines" });
+    res.update({ title, main });
+    out.appendChild(res.el);
     if (steps.length > 0) {
       out.appendChild(
-        h(
-          "div",
-          { class: "card steps" },
-          h("div", { class: "lbl", text: t("solve_steps") }),
-          h(
-            "ol",
-            { class: "step-list" },
-            steps.map((s) => h("li", null, h("div", { class: "step-name", text: stepLabel(s.rule, state.lang).name }), h("div", { class: "step-body" }, stepNodes(s)))),
-          ),
-        ),
+        kit.Card(
+          { class: "steps" },
+          kit.Text({ kind: "label", text: t("solve_steps") }).el,
+          kit.StepList(steps.map((s) => ({ name: stepLabel(s.rule, state.lang).name, body: stepNodes(s) }))).el,
+        ).el,
       );
     }
   }
@@ -136,67 +127,76 @@ export function createSolvePage(): Page {
     }
   }
 
-  function field(key: string, ph: string, inputMode = "text"): HTMLInputElement {
-    const input = h("input", {
-      class: "field ltr",
-      attrs: { type: "text", inputmode: inputMode, dir: "ltr", autocomplete: "off", autocapitalize: "off", spellcheck: false, placeholder: ph, "aria-label": ph, maxlength: 200 },
-      on: {
-        input: () => {
-          vals[key] = input.value;
-        },
-        keydown: (e) => {
-          if (e.key === "Enter") run();
-        },
+  function field(key: string, ph: string, inputMode: "text" | "decimal" = "text"): HTMLElement {
+    return ctx.kit.Field({
+      ariaLabel: ph,
+      placeholder: ph,
+      inputMode,
+      maxLength: 200,
+      value: vals[key],
+      onInput: (v) => {
+        vals[key] = v;
       },
-    });
-    input.value = vals[key];
-    return input;
+      onEnter: run,
+    }).el;
   }
 
   function teaser(): HTMLElement {
-    return h(
-      "div",
-      { class: "teaser" },
-      h(
-        "div",
-        { class: "teaser-blur", attrs: { "aria-hidden": "true" } },
-        h("div", { class: "card result-card" }, h("div", { class: "lbl", text: t("solve_result") }), h("div", { class: "res-line ltr", text: "d/dx = 2x·sin(x) + x²·cos(x)" })),
-        h("div", { class: "card steps" }, h("div", { class: "lbl", text: t("solve_steps") }), h("div", { class: "step-body ltr", text: "(x²)′·sin(x) + x²·(sin(x))′ → 2x·sin(x) + x²·cos(x)" })),
-      ),
-      proLock(async () => {
-        await refreshMe();
-        render();
-      }),
+    const kit = ctx.kit;
+    const preview = document.createDocumentFragment();
+    const res = kit.ResultCard({ variant: "lines" });
+    res.update({ title: t("solve_result"), main: ["d/dx = 2x·sin(x) + x²·cos(x)"] });
+    preview.append(
+      res.el,
+      kit.Card({ class: "steps" }, kit.Text({ kind: "label", text: t("solve_steps") }).el, h("div", { class: "step-body ltr", text: "(x²)′·sin(x) + x²·(sin(x))′ → 2x·sin(x) + x²·cos(x)" })).el,
     );
+    return kit.LockedOverlay({
+      preview,
+      title: t("pro_locked_title"),
+      text: t("pro_locked_text"),
+      actionLabel: t("pro_upgrade", { stars: state.proStars }),
+      onAction: () =>
+        void buyPro(async () => {
+          await refreshMe();
+          render();
+        }),
+    }).el;
   }
 
   function render(): void {
     clear(el);
-    const modeOptions = MODES.map((m) => [m, t(`solve_${m}` as "solve_derivative")] as const);
-    const tabs = chooser(
-      modeOptions,
-      mode,
-      (m) => {
-        mode = m;
-        lsSet("solve-mode", m);
-        render();
-      },
-      t("nav_solve"),
+    const kit = ctx.kit;
+    el.appendChild(
+      kit.Chooser({
+        options: MODES.map((m) => [m, t(`solve_${m}` as "solve_derivative")] as const),
+        value: mode,
+        label: t("nav_solve"),
+        onPick: (m) => {
+          mode = m;
+          lsSet("solve-mode", m);
+          render();
+        },
+      }).el,
     );
-    el.appendChild(tabs);
     if (!state.isPro) {
       el.appendChild(teaser());
       return;
     }
-    const form = h("div", { class: "card form solve-form" });
-    const go = h("button", { class: "btn primary", attrs: { type: "button" }, text: t("solve_go"), on: { click: run } });
+    const form = kit.Card({ class: "form solve-form" }).el;
+    const go = kit.Button({ variant: "primary", label: t("solve_go"), onClick: run }).el;
     if (mode === "derivative" || mode === "arith") form.appendChild(h("div", { class: "inline-go" }, field("expr", t("solve_expr_ph")), go));
     if (mode === "equation") form.appendChild(h("div", { class: "inline-go" }, field("eq", t("solve_eq_ph")), go));
     if (mode === "system") form.append(field("eq1", t("solve_eq1")), h("div", { class: "inline-go" }, field("eq2", t("solve_eq2")), go));
     if (mode === "integral") {
-      const def = h("input", { attrs: { type: "checkbox", id: "def-int" }, on: { change: () => { vals.definite = def.checked ? "1" : ""; render(); } } });
-      def.checked = vals.definite === "1";
-      const defRow = h("label", { class: "check" }, def, h("span", { text: t("solve_definite") }));
+      const defRow = kit.Toggle({
+        kind: "check",
+        label: t("solve_definite"),
+        checked: vals.definite === "1",
+        onChange: (c) => {
+          vals.definite = c ? "1" : "";
+          render();
+        },
+      }).el;
       if (vals.definite === "1") {
         form.append(field("expr", t("solve_expr_ph")), h("div", { class: "grid2" }, field("a", t("solve_lower"), "decimal"), field("b", t("solve_upper"), "decimal")), h("div", { class: "inline-go" }, defRow, go));
       } else {
@@ -213,7 +213,7 @@ export function createSolvePage(): Page {
     render,
     onShow: () => {
       // entitlement may have changed (purchase, refund): rebuild when the lock state differs from what is shown
-      const locked = !!el.querySelector(".teaser");
+      const locked = !!el.querySelector('[data-ui="locked-overlay"]');
       if (locked === state.isPro) render();
     },
   };

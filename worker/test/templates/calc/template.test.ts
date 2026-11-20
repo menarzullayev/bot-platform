@@ -45,8 +45,8 @@ describe("profile", () => {
     for (const set of [p.names, p.shortDescriptions, p.descriptions]) expect(Object.keys(set).sort()).toEqual(codes);
   });
 
-  it("all 18 commands in every language, valid for setMyCommands", () => {
-    expect(COMMAND_NAMES).toHaveLength(18);
+  it("all 19 commands in every language, valid for setMyCommands", () => {
+    expect(COMMAND_NAMES).toHaveLength(19);
     for (const [lang, list] of Object.entries(p.commands)) {
       expect(list.map((c) => c.command), lang).toEqual([...COMMAND_NAMES]);
       for (const c of list) {

@@ -148,7 +148,7 @@ describe("POST /admin/bots/:id/setup for a calc bot", () => {
     expect(per("setMyShortDescription")).toHaveLength(7);
     expect(per("setMyDescription")).toHaveLength(7);
     const cmds = t.calls.find((c) => c.method === "setMyCommands" && !c.body!.language_code)!;
-    expect((cmds.body!.commands as unknown[]).length).toBe(18);
+    expect((cmds.body!.commands as unknown[]).length).toBe(19);
     expect(t.calls.find((c) => c.method === "setMyCommands" && c.body!.language_code === "uz")).toBeTruthy();
     expect(t.calls.some((c) => c.body?.language_code === "uz-cyrl")).toBe(false);
   });

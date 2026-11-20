@@ -43,7 +43,13 @@ interface UserRow {
   digits: number;
   keep_history: number;
   pro_until: number;
+  style: string | null;
+  contrast: string | null;
+  density: string | null;
+  lite: string | null;
+  fs: string | null;
 }
+const NO_LOOK = { style: null, contrast: null, density: null, lite: null, fs: null };
 interface HistRow {
   id: number;
   bot_id: string;
@@ -73,7 +79,7 @@ export class AppDb implements Db {
       async first<T>() {
         self.queries++;
         if (sql.startsWith("SELECT id, token_enc")) return (self.bots.get(String(a[0])) as T) ?? null;
-        if (sql.startsWith("SELECT lang, angle, digits, keep_history, pro_until FROM users")) {
+        if (sql.startsWith("SELECT lang, angle, digits, keep_history, pro_until, style, contrast, density, lite, fs FROM users")) {
           return (self.users.get(`${a[0]}:${a[1]}`) as T) ?? null;
         }
         throw new Error("AppDb.first unsupported: " + sql);
@@ -95,9 +101,21 @@ export class AppDb implements Db {
       async run() {
         self.queries++;
         if (sql.startsWith("INSERT INTO users")) {
-          const [bot, user, lang, angle, digits, kh] = a as [string, number, string | null, string, number, number];
+          const [bot, user, lang, angle, digits, kh, style, contrast, density, lite, fs] = a as [
+            string,
+            number,
+            string | null,
+            string,
+            number,
+            number,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+          ];
           const prev = self.users.get(`${bot}:${user}`);
-          self.users.set(`${bot}:${user}`, { lang, angle, digits, keep_history: kh, pro_until: prev?.pro_until ?? 0 });
+          self.users.set(`${bot}:${user}`, { lang, angle, digits, keep_history: kh, pro_until: prev?.pro_until ?? 0, style, contrast, density, lite, fs });
           return {};
         }
         if (sql.startsWith("INSERT INTO history")) {
@@ -130,7 +148,7 @@ export class AppDb implements Db {
 
   setPro(botId: string, userId: number, until: number): void {
     const k = `${botId}:${userId}`;
-    const u = this.users.get(k) ?? { lang: null, angle: "deg", digits: 12, keep_history: 0, pro_until: 0 };
+    const u = this.users.get(k) ?? { lang: null, angle: "deg", digits: 12, keep_history: 0, pro_until: 0, ...NO_LOOK };
     this.users.set(k, { ...u, pro_until: until });
   }
 }

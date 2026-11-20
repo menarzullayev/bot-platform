@@ -33,7 +33,7 @@ export const ar: Messages = {
     "<b>وضع الضيف</b>\n" +
     `اذكر ${c("@tezcalc_bot")} متبوعًا بعملية حسابية في أي محادثة، حتى لو لم تتم إضافتي إليها، وسأرد عليك بالنتيجة.\n\n` +
     "🧾 /vat · 🧠 /solve · /derive · /integrate (Pro) · 🧮 /widget · 📱 /app\n" +
-    "⚙️ /settings · 🕘 /history · 🌐 /lang · ⭐ /pro",
+    "⚙️ /settings · 🎨 /style · 🕘 /history · 🌐 /lang · ⭐ /pro",
 
   lang_menu_title: "🌐 اختر لغتك",
   lang_changed: "✅ تم تغيير اللغة إلى العربية.",
@@ -187,4 +187,13 @@ export const ar: Messages = {
   cmd_integrate: "تكامل خطوة بخطوة (Pro)",
   cmd_widget: "ودجت الحاسبة",
   cmd_app: "فتح التطبيق المصغّر",
+  style_title: "🎨 <b>نمط التطبيق المصغّر</b>\nاختر شكل التطبيق المصغّر لـ TezCalc.",
+  style_current: "النمط الحالي:",
+  style_tactile: "ملموس ثلاثي الأبعاد",
+  style_glass: "زجاجي",
+  style_fintech: "فينتك",
+  style_techno: "تقني HUD",
+  style_changed: "✅ تم حفظ النمط",
+  style_open_app: "📱 فتح التطبيق المصغّر",
+  cmd_style: "تغيير نمط التطبيق المصغّر",
 };

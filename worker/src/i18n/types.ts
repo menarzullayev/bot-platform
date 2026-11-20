@@ -19,6 +19,7 @@ export const COMMAND_NAMES = [
   "integrate",
   "widget",
   "app",
+  "style",
   "pro",
   "privacy",
   "terms",
@@ -116,6 +117,15 @@ export const MESSAGE_KEYS = [
   "cmd_integrate",
   "cmd_widget",
   "cmd_app",
+  "style_title",
+  "style_current",
+  "style_tactile",
+  "style_glass",
+  "style_fintech",
+  "style_techno",
+  "style_changed",
+  "style_open_app",
+  "cmd_style",
 ] as const;
 export type MessageKey = (typeof MESSAGE_KEYS)[number];
 
@@ -174,6 +184,13 @@ export const PLAIN_KEYS: readonly MessageKey[] = [
   "cmd_integrate",
   "cmd_widget",
   "cmd_app",
+  "style_tactile",
+  "style_glass",
+  "style_fintech",
+  "style_techno",
+  "style_changed",
+  "style_open_app",
+  "cmd_style",
 ];
 
 /** Telegram length limits. */

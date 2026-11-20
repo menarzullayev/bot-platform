@@ -4,12 +4,13 @@ import { Decimal } from "../../../../worker/src/calc/decimal";
 import { availableCurrencies, categories, convert, defaultPair, itemsOf, searchItems, type Category } from "../../lib/convert";
 import { formatResult, isolateLtr, parseNumber } from "../../lib/num";
 import { isRtl } from "../../i18n";
-import { clear, h, icon } from "../dom";
+import type { ResultCardHandle, SelectHandle } from "../../contract/types";
+import { clear, h } from "../dom";
+import { openPicker, toast } from "../overlays";
 import { ensureRates } from "../session";
 import { lsGet, lsSet, prefs, state, t } from "../state";
 import { haptic } from "../tg";
-import { chooser, openPicker, toast } from "../widgets";
-import type { Page } from "./types";
+import type { Page, PageCtx } from "./types";
 
 interface Saved {
   cat: Category;
@@ -27,18 +28,16 @@ function currencyName(code: string): string | undefined {
   }
 }
 
-export function createConvertPage(): Page {
+export function createConvertPage(ctx: PageCtx): Page {
   const el = h("section", { class: "page convert", attrs: { "aria-label": "converter" } });
   const saved = lsGet<Saved | null>("conv", null);
   let cat: Category = saved?.cat ?? "length";
   let [from, to] = saved ? [saved.from, saved.to] : defaultPair(cat);
   let value = saved?.value ?? "1";
-  let outEl!: HTMLElement;
-  let rateEl!: HTMLElement;
-  let noteEl!: HTMLElement;
-  let fromBtn!: HTMLButtonElement;
-  let toBtn!: HTMLButtonElement;
-  let inputEl!: HTMLInputElement;
+  let outText = "";
+  let result!: ResultCardHandle;
+  let fromSel!: SelectHandle;
+  let toSel!: SelectHandle;
 
   const persist = (): void => lsSet("conv", { cat, from, to, value } satisfies Saved);
 
@@ -49,35 +48,35 @@ export function createConvertPage(): Page {
 
   function compute(): void {
     persist();
-    fromBtn.textContent = label(from);
-    toBtn.textContent = label(to);
-    noteEl.textContent = "";
-    rateEl.textContent = "";
+    fromSel.setText(label(from));
+    toSel.setText(label(to));
+    let note: { text: string; warn?: boolean; busy?: boolean } | null = null;
+    let hint = "";
     if (cat === "currency") {
-      if (state.ratesStatus === "loading" || state.ratesStatus === "idle") noteEl.textContent = t("conv_rates_loading");
-      else if (!state.rates) noteEl.textContent = t("conv_rates_unavailable");
+      if (state.ratesStatus === "loading" || state.ratesStatus === "idle") note = { text: t("conv_rates_loading"), busy: true };
+      else if (!state.rates) note = { text: t("conv_rates_unavailable") };
       else {
         const date = new Date(state.rates.updatedAt * 1000).toISOString().slice(0, 10);
-        noteEl.textContent = t(state.rates.stale ? "fx_stale" : "fx_updated", { date });
-        noteEl.classList.toggle("warn", state.rates.stale);
+        note = { text: t(state.rates.stale ? "fx_stale" : "fx_updated", { date }), warn: state.rates.stale };
       }
     }
+    let main = "—";
     const v = parseNumber(value);
-    if (!v) {
-      outEl.textContent = "—";
-      return;
+    if (v) {
+      const r = convert(cat, v, from, to, state.rates);
+      if (!r.ok) {
+        main = r.error === "no_rate" ? "—" : t(r.error === "units_mismatch" ? "err_units_mismatch" : "err_generic");
+      } else {
+        main = formatResult(r.value, prefs());
+        const one = convert(cat, Decimal.ONE, from, to, state.rates);
+        if (one.ok) {
+          const line = t("conv_rate_line", { from, to, rate: formatResult(one.value, prefs()) });
+          hint = isRtl(state.lang) ? isolateLtr(line) : line;
+        }
+      }
     }
-    const r = convert(cat, v, from, to, state.rates);
-    if (!r.ok) {
-      outEl.textContent = r.error === "no_rate" ? "—" : t(r.error === "units_mismatch" ? "err_units_mismatch" : "err_generic");
-      return;
-    }
-    outEl.textContent = formatResult(r.value, prefs());
-    const one = convert(cat, Decimal.ONE, from, to, state.rates);
-    if (one.ok) {
-      const line = t("conv_rate_line", { from, to, rate: formatResult(one.value, prefs()) });
-      rateEl.textContent = isRtl(state.lang) ? isolateLtr(line) : line;
-    }
+    outText = main;
+    result.update({ main: [main], hint, note });
   }
 
   const label = (code: string): string => code;
@@ -102,62 +101,59 @@ export function createConvertPage(): Page {
 
   function render(): void {
     clear(el);
-    const chips = chooser(
-      categories().map((c) => [c, t(`cat_${c}` as "cat_length")] as const),
-      cat,
-      (c) => {
+    const kit = ctx.kit;
+    const chips = kit.Chooser({
+      options: categories().map((c) => [c, t(`cat_${c}` as "cat_length")] as const),
+      value: cat,
+      label: t("nav_convert"),
+      onPick: (c) => {
         cat = c;
         [from, to] = defaultPair(c);
         if (c === "currency") void ensureRates().then(() => { normalizePair(); compute(); });
         render();
       },
-      t("nav_convert"),
-    );
-    inputEl = h("input", {
-      class: "field big ltr",
-      attrs: { type: "text", inputmode: "decimal", autocomplete: "off", dir: "ltr", "aria-label": t("conv_value") },
-      on: {
-        input: () => {
-          value = inputEl.value;
-          compute();
-        },
+    });
+    const input = kit.Field({
+      label: t("conv_value"),
+      ariaLabel: t("conv_value"),
+      size: "big",
+      inputMode: "decimal",
+      value,
+      onInput: (v) => {
+        value = v;
+        compute();
       },
     });
-    inputEl.value = value;
-    fromBtn = h("button", { class: "select ltr", attrs: { type: "button", "aria-label": t("conv_from") }, on: { click: () => pick("from") } });
-    toBtn = h("button", { class: "select ltr", attrs: { type: "button", "aria-label": t("conv_to") }, on: { click: () => pick("to") } });
-    const swap = h(
-      "button",
-      {
-        class: "icon-btn round",
-        attrs: { type: "button", "aria-label": t("conv_swap") },
-        on: {
-          click: () => {
-            haptic.tap();
-            [from, to] = [to, from];
-            compute();
-          },
-        },
-      },
-      icon("swap", 20),
-    );
-    outEl = h("div", {
-      class: "conv-out ltr",
-      attrs: { role: "status", "aria-live": "polite", tabindex: 0 },
-      on: {
-        click: () => {
-          const text = outEl.textContent ?? "";
-          if (text && text !== "—") void navigator.clipboard?.writeText(text).then(() => toast(t("copied")), () => undefined);
-        },
+    fromSel = kit.Select({ ariaLabel: t("conv_from"), text: label(from), onClick: () => pick("from") });
+    toSel = kit.Select({ ariaLabel: t("conv_to"), text: label(to), onClick: () => pick("to") });
+    const swap = kit.IconButton({
+      icon: "swap",
+      label: t("conv_swap"),
+      shape: "round",
+      onClick: () => {
+        haptic.tap();
+        [from, to] = [to, from];
+        compute();
       },
     });
-    rateEl = h("div", { class: "hint ltr" });
-    noteEl = h("div", { class: "hint note" });
+    result = kit.ResultCard({
+      variant: "value",
+      live: true,
+      onMainClick: () => {
+        if (outText && outText !== "—") void navigator.clipboard?.writeText(outText).then(() => toast(t("copied")), () => undefined);
+      },
+    });
     el.append(
-      chips,
-      h("label", { class: "card conv-in" }, h("span", { class: "lbl", text: t("conv_value") }), inputEl),
-      h("div", { class: "pair" }, h("div", { class: "pair-col" }, h("div", { class: "lbl", text: t("conv_from") }), fromBtn), swap, h("div", { class: "pair-col" }, h("div", { class: "lbl", text: t("conv_to") }), toBtn)),
-      h("div", { class: "card out" }, outEl, rateEl, noteEl),
+      chips.el,
+      kit.Card({ class: "conv-in" }, input.el).el,
+      h(
+        "div",
+        { class: "pair" },
+        h("div", { class: "pair-col" }, kit.Text({ kind: "label", text: t("conv_from") }).el, fromSel.el),
+        swap.el,
+        h("div", { class: "pair-col" }, kit.Text({ kind: "label", text: t("conv_to") }).el, toSel.el),
+      ),
+      result.el,
     );
     normalizePair();
     compute();

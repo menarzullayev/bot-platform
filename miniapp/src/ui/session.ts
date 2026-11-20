@@ -3,6 +3,7 @@
 import { ApiError, type HistoryItem } from "../lib/api";
 import { parseFxPayload } from "../lib/convert";
 import { isLang, type Lang } from "../i18n";
+import { isContrast, isDensity, isFontSize, isLite, isStyleId, type Contrast, type Density, type FontSize, type Lite, type StyleId } from "../contract/model";
 import { lsGet, lsSet, persistPrefs, state, update } from "./state";
 
 let ratesPromise: Promise<void> | null = null;
@@ -45,6 +46,13 @@ export async function refreshMe(applyLang = false): Promise<boolean> {
       keepHistory: me.settings.keep_history,
       authError: null,
     };
+    // style and axes: a valid server value wins, null/unknown keeps what this device already has
+    const s = me.settings;
+    if (isStyleId(s.style)) patch.style = s.style;
+    if (isContrast(s.contrast)) patch.contrast = s.contrast;
+    if (isDensity(s.density)) patch.density = s.density;
+    if (isLite(s.lite)) patch.lite = s.lite;
+    if (isFontSize(s.fs)) patch.fs = s.fs;
     if (applyLang && isLang(me.lang)) patch.lang = me.lang as Lang;
     update(patch);
     persistPrefs();
@@ -103,6 +111,11 @@ export interface SettingsPatch {
   digits?: number;
   keepHistory?: boolean;
   lang?: Lang;
+  style?: StyleId;
+  contrast?: Contrast;
+  density?: Density;
+  lite?: Lite;
+  fs?: FontSize;
 }
 
 /** Applies a settings change locally at once and mirrors it to the server when signed in. Returns false when the server refused. */
@@ -110,11 +123,16 @@ export async function saveSettings(patch: SettingsPatch): Promise<boolean> {
   update(patch);
   persistPrefs();
   if (!state.api || state.mode !== "telegram" || state.authError) return true;
-  const body: { angle?: "deg" | "rad"; digits?: number; keep_history?: boolean; lang?: string } = {};
+  const body: { angle?: "deg" | "rad"; digits?: number; keep_history?: boolean; lang?: string; style?: string; contrast?: string; density?: string; lite?: string; fs?: string } = {};
   if (patch.angle !== undefined) body.angle = patch.angle;
   if (patch.digits !== undefined) body.digits = patch.digits;
   if (patch.keepHistory !== undefined) body.keep_history = patch.keepHistory;
   if (patch.lang !== undefined) body.lang = patch.lang;
+  if (patch.style !== undefined) body.style = patch.style;
+  if (patch.contrast !== undefined) body.contrast = patch.contrast;
+  if (patch.density !== undefined) body.density = patch.density;
+  if (patch.lite !== undefined) body.lite = patch.lite;
+  if (patch.fs !== undefined) body.fs = patch.fs;
   try {
     await state.api.saveSettings(body);
     return true;
